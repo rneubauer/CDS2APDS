@@ -1,0 +1,383 @@
+<title>CDS–APDS Link Profile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800&family=Overpass+Mono:wght@400;600&display=swap">
+<style>
+  :root {
+    color-scheme: light;
+    --ground: #f3f4f1;
+    --surface: #ffffff;
+    --ink: #1c2124;
+    --muted: #5b6468;
+    --line: #d5d9d4;
+    --cds: #1f6a86;
+    --cds-soft: #dcecf1;
+    --apds: #8a5a1c;
+    --apds-soft: #f2e6d3;
+    --link: #c9920c;
+    --road: #d9ddd8;
+    --walk: #e9ebe6;
+    --stop: #b53a2f;
+    --code-bg: #eceee9;
+    --ok: #2f7d4f;
+    --font: "Overpass", "Segoe UI", system-ui, sans-serif;
+    --mono: "Overpass Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --ground: #15191b; --surface: #1d2326; --ink: #e6e9e6; --muted: #9aa4a7; --line: #333b3f;
+      --cds: #6cb8d4; --cds-soft: #1b3440; --apds: #d9a45e; --apds-soft: #3a2c19; --link: #e8b83a;
+      --road: #2a3134; --walk: #232a2d; --stop: #e0685c; --code-bg: #252c2f; --ok: #6cc28f;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --ground: #15191b; --surface: #1d2326; --ink: #e6e9e6; --muted: #9aa4a7; --line: #333b3f;
+    --cds: #6cb8d4; --cds-soft: #1b3440; --apds: #d9a45e; --apds-soft: #3a2c19; --link: #e8b83a;
+    --road: #2a3134; --walk: #232a2d; --stop: #e0685c; --code-bg: #252c2f; --ok: #6cc28f;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: var(--font); font-size: 16px; line-height: 1.6;
+    padding-inline: 16px; padding-block: 0 64px;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 48px; }
+  nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; padding-top: 40px; font-size: 14px; }
+  nav.toc p { margin: 0 0 8px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  nav.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  nav.toc a { color: var(--muted); text-decoration: none; }
+  nav.toc a:hover, nav.toc a:focus-visible { color: var(--ink); text-decoration: underline; }
+  main { min-width: 0; padding-top: 40px; }
+  @media (max-width: 860px) { .wrap { grid-template-columns: minmax(0, 1fr); gap: 0; } nav.toc { display: none; } }
+
+  h1, h2, h3 { text-wrap: balance; line-height: 1.15; }
+  h1 { font-size: clamp(34px, 5vw, 52px); font-weight: 800; margin: 8px 0 16px; letter-spacing: -.01em; }
+  h2 { font-size: 28px; font-weight: 800; margin: 64px 0 12px; padding-top: 16px; border-top: 2px solid var(--ink); }
+  h3 { font-size: 19px; font-weight: 600; margin: 28px 0 8px; }
+  p, li { max-width: 68ch; }
+  a { color: var(--cds); }
+  .eyebrow { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600; color: var(--muted); margin: 0; }
+  .lede { font-size: 19px; color: var(--muted); max-width: 62ch; }
+  code, .mono { font-family: var(--mono); font-size: .88em; }
+  :not(pre) > code { background: var(--code-bg); padding: 1px 5px; border-radius: 3px; }
+  pre { background: var(--code-bg); border-radius: 4px; padding: 14px 16px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; margin: 12px 0; }
+  pre.mermaid { background: var(--surface); border: 1px solid var(--line); }
+
+  .tag { display: inline-block; font-family: var(--mono); font-size: 12px; font-weight: 600; padding: 1px 7px; border-radius: 3px; white-space: nowrap; }
+  .tag.cds { background: var(--cds-soft); color: var(--cds); }
+  .tag.apds { background: var(--apds-soft); color: var(--apds); }
+
+  .plan { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; margin: 28px 0 8px; overflow-x: auto; }
+  .plan svg { display: block; width: 100%; min-width: 640px; height: auto; }
+  .caption { font-size: 13px; color: var(--muted); margin: 0 0 8px; }
+
+  .touch { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 24px 0; }
+  .touch article { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 16px 18px; display: grid; gap: 6px; align-content: start; }
+  .touch h3 { margin: 0; }
+  .touch .code { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--link); }
+  .touch p { margin: 0; font-size: 15px; }
+  .touch .ends { font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  @media (max-width: 760px) { .touch { grid-template-columns: minmax(0, 1fr); } }
+
+  .table-wrap { overflow-x: auto; margin: 12px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+  th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+  th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; border-bottom: 2px solid var(--ink); }
+  td code { white-space: nowrap; }
+
+  .pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .pair > div { min-width: 0; }
+  .pair h3 { margin-top: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  @media (max-width: 760px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+
+  .note { border-left: 3px solid var(--link); padding: 4px 0 4px 16px; margin: 20px 0; color: var(--ink); }
+  .note p { margin: 4px 0; }
+  .status { display: flex; flex-wrap: wrap; gap: 12px; margin: 16px 0; }
+  .status div { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 12px 16px; flex: 1 1 200px; }
+  .status b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; color: var(--ok); }
+  .status span { font-size: 13px; color: var(--muted); }
+  footer { margin-top: 64px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+  :focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+</style>
+
+<div class="wrap">
+  <nav class="toc" aria-label="Sections">
+    <p>On this page</p>
+    <ol>
+      <li><a href="#boundary">Two domains</a></li>
+      <li><a href="#touchpoints">The three touchpoints</a></li>
+      <li><a href="#mechanics">How a link is written</a></li>
+      <li><a href="#supply">T2 · Nearby supply</a></li>
+      <li><a href="#permits">T3 · Shared permits</a></li>
+      <li><a href="#lifecycle">Identity &amp; lifecycle</a></li>
+      <li><a href="#service">Reference service</a></li>
+      <li><a href="#issues">Upstream issues found</a></li>
+      <li><a href="#repo">Repository</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <p class="eyebrow">Proposal v0.1 · CDS 1.1.0 × APDS 4.1</p>
+    <h1>CDS–APDS Link Profile</h1>
+    <p class="lede">The Curb Data Specification describes the curb. The APDS standard describes the garage. This profile
+      keeps them as two separate standards and links them only where the curb meets the facility, using fields both
+      specifications already have.</p>
+
+    <figure class="plan" aria-labelledby="plan-cap">
+      <svg viewBox="0 0 960 400" role="img" aria-label="Plan view: Main Street curb zones in front of the Civic Garage, with the three links between CDS and APDS records">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="var(--muted)"/>
+          </marker>
+        </defs>
+        <!-- road and sidewalk -->
+        <rect x="0" y="232" width="960" height="24" fill="var(--walk)"/>
+        <rect x="0" y="256" width="960" height="96" fill="var(--road)"/>
+        <line x1="0" y1="256" x2="960" y2="256" stroke="var(--ink)" stroke-width="2"/>
+        <line x1="0" y1="310" x2="960" y2="310" stroke="var(--muted)" stroke-width="2" stroke-dasharray="18 14"/>
+        <text x="16" y="340" font-family="var(--mono)" font-size="12" fill="var(--muted)">MAIN ST</text>
+
+        <!-- curb area outline -->
+        <rect x="28" y="250" width="712" height="34" fill="none" stroke="var(--cds)" stroke-width="1.5" stroke-dasharray="4 4"/>
+        <text x="32" y="300" font-family="var(--mono)" font-size="11" fill="var(--cds)">Curb Area · Civic District</text>
+
+        <!-- curb zones -->
+        <rect x="40" y="258" width="190" height="20" fill="var(--cds-soft)" stroke="var(--cds)"/>
+        <text x="135" y="272" text-anchor="middle" font-family="var(--font)" font-size="12" font-weight="600" fill="var(--cds)">Zone A permit</text>
+        <rect x="240" y="258" width="360" height="20" fill="var(--cds-soft)" stroke="var(--cds)"/>
+        <text x="420" y="272" text-anchor="middle" font-family="var(--font)" font-size="12" font-weight="600" fill="var(--cds)">Metered, 2 h · 0 of 8 free</text>
+        <rect x="610" y="258" width="120" height="20" fill="var(--surface)" stroke="var(--stop)"/>
+        <text x="670" y="272" text-anchor="middle" font-family="var(--font)" font-size="12" font-weight="600" fill="var(--stop)">No stopping</text>
+        <text x="40" y="246" font-family="var(--mono)" font-size="11" fill="var(--cds)">Curb Zones (CDS)</text>
+
+        <!-- garage -->
+        <rect x="600" y="36" width="330" height="170" fill="var(--apds-soft)" stroke="var(--apds)" stroke-width="1.5"/>
+        <text x="620" y="64" font-family="var(--font)" font-size="15" font-weight="800" fill="var(--apds)">Civic Garage</text>
+        <text x="620" y="84" font-family="var(--mono)" font-size="11" fill="var(--apds)">APDS Place</text>
+        <text x="620" y="112" font-family="var(--font)" font-size="13" fill="var(--ink)">420 spaces · 119 free</text>
+        <text x="620" y="130" font-family="var(--font)" font-size="13" fill="var(--ink)">demandTable, counted</text>
+        <!-- entrance -->
+        <rect x="640" y="206" width="60" height="26" fill="var(--surface)" stroke="var(--apds)" stroke-width="1.5"/>
+        <text x="710" y="224" font-family="var(--mono)" font-size="11" fill="var(--apds)">VehicularAccess · entry</text>
+        <path d="M670 300 C 670 280, 670 250, 670 214" fill="none" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <!-- permit programme -->
+        <rect x="40" y="60" width="300" height="84" fill="var(--apds-soft)" stroke="var(--apds)" stroke-width="1.5"/>
+        <text x="56" y="86" font-family="var(--font)" font-size="14" font-weight="800" fill="var(--apds)">Zone A resident permit</text>
+        <text x="56" y="106" font-family="var(--mono)" font-size="11" fill="var(--apds)">APDS RightSpecification</text>
+        <text x="56" y="126" font-family="var(--mono)" font-size="11" fill="var(--apds)">type: permitParking</text>
+        <line x1="340" y1="100" x2="600" y2="100" stroke="var(--apds)" stroke-width="1.5"/>
+        <text x="470" y="92" text-anchor="middle" font-family="var(--mono)" font-size="11" fill="var(--apds)">hierarchyElements</text>
+
+        <!-- links -->
+        <g fill="none" stroke="var(--link)" stroke-width="3" stroke-dasharray="7 6">
+          <path d="M700 268 C 760 268, 760 222, 700 219"/>
+          <path d="M300 250 C 360 180, 520 170, 600 160"/>
+          <path d="M135 258 L 135 144"/>
+        </g>
+        <g font-family="var(--mono)" font-size="13" font-weight="600">
+          <rect x="752" y="232" width="34" height="22" rx="3" fill="var(--link)"/><text x="769" y="248" text-anchor="middle" fill="#1c2124">T1</text>
+          <rect x="430" y="164" width="34" height="22" rx="3" fill="var(--link)"/><text x="447" y="180" text-anchor="middle" fill="#1c2124">T2</text>
+          <rect x="146" y="186" width="34" height="22" rx="3" fill="var(--link)"/><text x="163" y="202" text-anchor="middle" fill="#1c2124">T3</text>
+        </g>
+
+        <!-- legend -->
+        <g font-family="var(--font)" font-size="12" fill="var(--ink)">
+          <rect x="16" y="368" width="14" height="14" fill="var(--cds-soft)" stroke="var(--cds)"/><text x="36" y="380">On-street record (CDS)</text>
+          <rect x="196" y="368" width="14" height="14" fill="var(--apds-soft)" stroke="var(--apds)"/><text x="216" y="380">Off-street record (APDS)</text>
+          <line x1="386" y1="375" x2="420" y2="375" stroke="var(--link)" stroke-width="3" stroke-dasharray="7 6"/><text x="428" y="380">Link: a reference, never a copy</text>
+        </g>
+      </svg>
+    </figure>
+    <p class="caption" id="plan-cap">The worked example used throughout: three curb zones on Main St in front of the Civic Garage. Every record shown exists in <code>examples/</code> and validates against its official schema.</p>
+
+    <h2 id="boundary">Two domains, one seam</h2>
+    <p>Each specification stays fully usable on its own. Nothing here changes either standard, adds required fields,
+      or asks one side to understand the other's data model. For every real-world object there is exactly one source
+      of truth.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th></th><th>CDS 1.1 · on-street</th><th>APDS 4.1 · off-street</th></tr></thead>
+      <tbody>
+        <tr><td>Domain</td><td>The public curb</td><td>Garages, surface lots and other facilities</td></tr>
+        <tr><td>Typical publisher</td><td>City or agency, plus sensor, fleet and payment providers</td><td>Facility operator or parking platform</td></tr>
+        <tr><td>API style</td><td>Read-only feeds, plus an events push endpoint</td><td>CRUD data store with versions, webhooks and quotes</td></tr>
+        <tr><td>Stays inside</td><td>Policy priority, curb activities, events, metrics, lane blocking</td><td>Sessions, quotes, rate calculation, contacts, observations</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">
+      <p><strong>APDS can model on-street parking too.</strong> This profile doesn't use it that way: the curb is described once, in CDS.</p>
+      <p>There is also no session hand-off. A car leaving the curb and entering the garage creates two independent records, because correlating them would mean tracking individual vehicles.</p>
+    </div>
+
+    <h2 id="touchpoints">The three touchpoints</h2>
+    <div class="touch">
+      <article>
+        <span class="code">T1</span>
+        <h3>Access</h3>
+        <p>A facility entrance sits on a curb, usually behind a no-stopping apron.</p>
+        <div class="ends"><span class="tag cds">Curb Zone</span>↔<span class="tag apds">VehicularAccess</span></div>
+      </article>
+      <article>
+        <span class="code">T2</span>
+        <h3>Nearby supply</h3>
+        <p>The curb is full, so show the garages nearby with their live capacity.</p>
+        <div class="ends"><span class="tag cds">Curb Area</span>↔<span class="tag apds">Place</span></div>
+      </article>
+      <article>
+        <span class="code">T3</span>
+        <h3>Shared permits</h3>
+        <p>One permit programme is honoured at the curb and inside a facility.</p>
+        <div class="ends"><span class="tag cds">Curb Policy</span>→<span class="tag apds">RightSpecification</span></div>
+      </article>
+    </div>
+
+    <h2 id="mechanics">How a link is written</h2>
+    <p>Both specifications already have a field for pointing at an external record. The profile only fixes how to fill it in.</p>
+    <div class="pair">
+      <div>
+        <h3><span class="tag cds">CDS</span> <code>external_references</code></h3>
+        <pre><code>"external_references": [{
+  "name": "APDS",
+  "reference_url": "https://apds.example.org/v4/places/…f002",
+  "identifier_name": "HierarchyElement.id",
+  "ids": ["…f002"],
+  "public": false
+}]</code></pre>
+        <p>Available on Curb Areas, Zones, Spaces, Objects and Policies. Adding a link never forces a new <code>curb_zone_id</code>.</p>
+      </div>
+      <div>
+        <h3><span class="tag apds">APDS</span> <code>operatorDefinedReference</code></h3>
+        <pre><code>"operatorDefinedReference": {
+  "id": "…b001",
+  "version": 1,
+  "className": "CdsCurbZone"
+}</code></pre>
+        <p>Available on every HierarchyElement. <code>className</code> must match <code>^[A-Z]+[A-Za-z0-9]+</code>, so <code>cds:CurbZone</code> is invalid. <code>version</code> is always 1, because CDS objects are unversioned.</p>
+      </div>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Link kind</th><th>CDS record</th><th>APDS record</th><th>Declared in</th></tr></thead>
+      <tbody>
+        <tr><td><code>access</code></td><td>Curb Zone, Curb Object</td><td>HierarchyElement, <code>type: vehicularAccess</code></td><td>Both sides</td></tr>
+        <tr><td><code>supply</code></td><td>Curb Area, Curb Zone</td><td>HierarchyElement, <code>type: place</code></td><td>Both sides</td></tr>
+        <tr><td><code>permit</code></td><td>Curb Policy</td><td>RightSpecification</td><td>CDS only (RightSpecification has no reference field)</td></tr>
+      </tbody>
+    </table></div>
+    <p>A link declared on both sides is <strong>confirmed</strong>, and one declared on a single side is <strong>one-sided</strong>. Both are valid; confirmation just makes stale data detectable. <code>operatorDefinedReference</code> holds one value, so a garage with several entrances declares one link per VehicularAccess.</p>
+
+    <h2 id="supply">T2 · Nearby off-street supply</h2>
+    <p>Nearby supply needs no declared link at all: APDS already answers a radius query. Declared <code>supply</code> links only rank a Place first.</p>
+    <pre class="mermaid">
+sequenceDiagram
+  participant App as Curb app
+  participant CDS as CDS Curbs API
+  participant APDS as APDS API
+  App->>CDS: GET /curbs/zones/{id}
+  CDS-->>App: Curb Zone (geometry, curb_area_ids)
+  Note over App: centroid of zone geometry<br/>CDS radius is cm, APDS radius is m
+  App->>APDS: GET /places?latitude&longitude&radius&type=place&expand=occupancy
+  APDS-->>App: Places with supply + demandTable
+  Note over App: linked first, then by distance<br/>available = supply − latest count
+    </pre>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Available capacity from</th><th>Rule</th></tr></thead>
+      <tbody>
+        <tr><td>Supply and a counted demand record</td><td><code>supplyQuantity − count</code> of the latest <code>demandType</code></td></tr>
+        <tr><td>Supply and a percentage</td><td><code>round(supplyQuantity × (1 − percentage/100))</code></td></tr>
+        <tr><td>Anything less</td><td>Unknown (<code>null</code>). Never assume a facility has space.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h2 id="permits">T3 · Shared permits</h2>
+    <p>A CDS Policy whose rule is limited to permit holders points at the APDS RightSpecification that defines the programme.
+      Enforcement then asks APDS whether the vehicle it sees holds that permit.</p>
+    <pre class="mermaid">
+sequenceDiagram
+  participant Enf as Curb enforcement
+  participant CDS as CDS Curbs API
+  participant APDS as APDS API
+  Enf->>CDS: GET zone, then its policies
+  CDS-->>Enf: rule user_classes [permit] + reference to rights/specs/{id}
+  Enf->>APDS: GET /rights/assigned?right_spec={id}&credential_id=ZA-004217
+  APDS-->>Enf: AssignedRight (issuanceTime, expiry)
+  Enf->>APDS: GET /rights/specs/{id}
+  APDS-->>Enf: validity (status, overall period)
+  Note over Enf: valid · expired · not_yet_valid · programme_inactive
+    </pre>
+    <p>A permit is valid at time <em>t</em> when a returned right belongs to a linked programme, holds the presented credential
+      (ignoring case, spaces and hyphens), and satisfies <code>issuanceTime ≤ t &lt; expiry</code>, and the programme itself is
+      neither suspended nor planned and is inside its overall period. Whether the curb policy applies at <em>t</em> is still
+      decided by CDS logic, as it is today.</p>
+    <div class="note"><p><strong>Privacy.</strong> Plates and permit numbers are personal data in many jurisdictions. Send them only to answer a verification request, never log them, and don't echo them back. The reference service returns <code>ZA-***217</code>.</p></div>
+
+    <h2 id="lifecycle">Identity &amp; lifecycle</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Change</th><th>CDS</th><th>APDS</th><th>Effect on links</th></tr></thead>
+      <tbody>
+        <tr><td>Metadata</td><td>Same id, new <code>last_updated_date</code></td><td>Same id, <code>version + 1</code></td><td>None</td></tr>
+        <tr><td>Geometry</td><td><strong>New</strong> <code>curb_zone_id</code>; old id kept in <code>prev_curb_zone_ids</code></td><td>Same id, <code>version + 1</code></td><td>APDS references go stale; resolve them through <code>prev_curb_zone_ids</code></td></tr>
+        <tr><td>Retirement</td><td><code>end_date</code> set</td><td>Logical delete, <code>PlaceDeleted</code> webhook</td><td>Link breaks and should be removed</td></tr>
+      </tbody>
+    </table></div>
+
+    <h2 id="service">Reference link service</h2>
+    <p>Optional. Everything above works with the two standard APIs alone. The service provides the reverse index
+      permits need, detects broken links, and answers T2 and T3 in one call each. It keeps no parking data of its own.</p>
+    <pre class="mermaid">
+flowchart LR
+  ENF[Enforcement / curb apps] -- "off-street? · permit valid?" --> LS[Link service]
+  LS -- "GET zones, areas, policies" --> CDS[(CDS Curbs API)]
+  LS -- "GET places, rights" --> APDS[(APDS API v4)]
+  APDS -- "webhooks: Place*, RightSpecification*" --> LS
+    </pre>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Endpoint</th><th>Does</th></tr></thead>
+      <tbody>
+        <tr><td><code>POST /sync</code></td><td>Harvests both sides and returns links plus issues</td></tr>
+        <tr><td><code>GET /links</code></td><td>Filters by <code>cds_id</code>, <code>apds_id</code> or <code>kind</code></td></tr>
+        <tr><td><code>GET /issues</code></td><td>Lists missing targets, stale zone ids and invalid references</td></tr>
+        <tr><td><code>GET /zones/{id}/off-street</code></td><td>T2 summary: linked garages first, with distance and free spaces</td></tr>
+        <tr><td><code>POST /permits/verify</code></td><td>T3 check; the credential goes in the body, never the URL</td></tr>
+        <tr><td><code>POST /webhooks/apds</code></td><td>Applies <code>Place*</code> and <code>RightSpecification*</code> changes; optional shared token</td></tr>
+      </tbody>
+    </table></div>
+    <div class="status" aria-label="Test results">
+      <div><b>15 / 15</b><span>Shared conformance cases pass in both Python and TypeScript</span></div>
+      <div><b>34 + 34</b><span>Tests passing in the Python and TypeScript implementations</span></div>
+      <div><b>14 / 14</b><span>Example payloads valid against the official schemas</span></div>
+    </div>
+
+    <h2 id="issues">Upstream schema issues found</h2>
+    <p>Found while validating the examples. The validator patches them in memory and prints them on every run.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Spec</th><th>Location</th><th>Issue</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tag apds">APDS 4.1</span></td><td><code>schemas/Reference</code></td><td>Requires <code>id</code> and <code>className</code> but sets <code>maxProperties: 1</code>, so no instance can validate. This affects credential identifiers.</td></tr>
+        <tr><td><span class="tag cds">CDS 1.1</span></td><td><code>geoJSON_polygon.yaml</code></td><td>Polygon <code>coordinates</code> is modelled as one list of positions (a LineString shape) instead of an array of RFC 7946 rings.</td></tr>
+        <tr><td><span class="tag cds">CDS 1.1</span></td><td><code>coordinates.yaml</code></td><td>Describes positions as latitude, longitude; RFC 7946 order is longitude, latitude.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h2 id="repo">Repository</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Path</th><th>Contents</th></tr></thead>
+      <tbody>
+        <tr><td><code>docs/01-boundary.md</code></td><td>Domain boundary and non-goals</td></tr>
+        <tr><td><code>docs/02-link-profile.md</code></td><td>The normative profile (RFC 2119 language)</td></tr>
+        <tr><td><code>docs/03-link-service.md</code></td><td>Service contract that both implementations follow</td></tr>
+        <tr><td><code>examples/</code></td><td>Civic District payloads, with <code>tools/validate_examples.py</code></td></tr>
+        <tr><td><code>conformance/</code></td><td>Language-neutral fixtures and cases</td></tr>
+        <tr><td><code>services/python</code>, <code>services/typescript</code></td><td>Reference link services</td></tr>
+      </tbody>
+    </table></div>
+
+    <footer>
+      Proposal v0.1, not endorsed by the Open Mobility Foundation or the Alliance for Parking Data Standards.
+      Built against <a href="https://github.com/openmobilityfoundation/curb-data-specification">CDS 1.1.0</a> and
+      <a href="https://github.com/parkingdata/spec">APDS 4.1</a>. Example data is fictional.
+    </footer>
+  </main>
+</div>

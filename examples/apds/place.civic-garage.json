@@ -1,0 +1,26 @@
+{
+  "id": "7d41e6b2-8c3f-4a9d-b210-00000000f001",
+  "version": 1,
+  "type": "place",
+  "name": [{ "language": "en", "string": "Civic Garage" }],
+  "layer": 0,
+  "hierarchyElementRecord": { "creationTime": "2026-01-01T00:00:00Z" },
+  "childIds": [{ "id": "7d41e6b2-8c3f-4a9d-b210-00000000f002", "version": 1 }],
+  "operatorDefinedReference": {
+    "id": "3f2a9c1e-5b7d-4e8a-9c01-00000000a001",
+    "version": 1,
+    "className": "CdsCurbArea"
+  },
+  "rightSpecifications": [{ "id": "7d41e6b2-8c3f-4a9d-b210-00000000f101", "version": 1 }],
+  "hierarchyElementReference": {
+    "elementId": { "id": "7d41e6b2-8c3f-4a9d-b210-00000000f001", "version": 1 },
+    "supply": [{ "supplyViewType": "spaceView", "supplyQuantity": 420 }],
+    "demandTable": [{
+      "timestamp": "2026-01-01T12:30:00Z",
+      "demandType": [{ "recordDateTime": "2026-01-01T12:30:00Z", "count": 301, "occupancyCalculation": "counted" }]
+    }]
+  },
+  "timeZone": "America/Denver",
+  "indicativePointLocation": [{ "type": "Point", "coordinates": [-105.27895, 40.01720] }],
+  "characteristics": { "openToPublic": true, "spacesTotal": 420, "evChargingPoints": 12 }
+}

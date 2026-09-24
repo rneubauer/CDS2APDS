@@ -1,0 +1,25 @@
+{
+  "name": "cds-apds-link",
+  "version": "0.1.0",
+  "description": "Reference link service for the CDS-APDS Link Profile (on-street CDS 1.1 <-> off-street APDS 4.1)",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/server.js",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "fastify": "^5.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@vitest/coverage-v8": "^3.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

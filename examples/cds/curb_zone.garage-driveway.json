@@ -1,0 +1,32 @@
+{
+  "curb_zone_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b001",
+  "name": "Main St - Civic Garage entry apron",
+  "description": "No-stopping apron in front of the Civic Garage vehicle entrance.",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [[
+      [-105.27905, 40.01700],
+      [-105.27885, 40.01700],
+      [-105.27885, 40.01703],
+      [-105.27905, 40.01703],
+      [-105.27905, 40.01700]
+    ]]
+  },
+  "curb_policy_ids": ["3f2a9c1e-5b7d-4e8a-9c01-00000000c001"],
+  "published_date": 1767225600000,
+  "last_updated_date": 1767225600000,
+  "start_date": 1767225600000,
+  "street_name": "Main St",
+  "street_side": "N",
+  "length": 1700,
+  "curb_area_ids": ["3f2a9c1e-5b7d-4e8a-9c01-00000000a001"],
+  "external_references": [
+    {
+      "name": "APDS",
+      "reference_url": "https://apds.example.org/v4/places/7d41e6b2-8c3f-4a9d-b210-00000000f002",
+      "public": false,
+      "identifier_name": "HierarchyElement.id",
+      "ids": ["7d41e6b2-8c3f-4a9d-b210-00000000f002"]
+    }
+  ]
+}

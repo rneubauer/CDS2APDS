@@ -1,0 +1,44 @@
+{
+  "description": "Upstream data and fake-server rules shared by every link-service implementation's conformance tests. Paths are relative to the repository's examples/ folder.",
+  "config": {
+    "CDS_BASE_URL": "https://cds.example.org",
+    "APDS_BASE_URL": "https://apds.example.org/v4",
+    "LINK_WEBHOOK_TOKEN": "conformance-token",
+    "DEFAULT_RADIUS_M": "400"
+  },
+  "cds": {
+    "zones": ["cds/curb_zone.garage-driveway.json", "cds/curb_zone.metered.json", "cds/curb_zone.resident-permit.json"],
+    "areas": ["cds/curb_area.civic-district.json"],
+    "policies": ["cds/curb_policy.no-stopping.json", "cds/curb_policy.metered.json", "cds/curb_policy.resident-permit.json"]
+  },
+  "apds": {
+    "elements": [
+      "apds/place.civic-garage.json",
+      "apds/vehicular-access.main-st-entry.json",
+      "apds/place.library-lot.json",
+      "apds/place.east-lot.json"
+    ],
+    "right_specs": ["apds/right-spec.zone-a-permit.json"],
+    "assigned_rights": ["apds/assigned-right.zone-a-permit.json"]
+  },
+  "fake_upstream": {
+    "cds": {
+      "GET /curbs/zones": "200 {\"data\":{\"zones\":[...]}}",
+      "GET /curbs/zones/{id}": "200 {\"data\":zone} | 404",
+      "GET /curbs/areas": "200 {\"data\":{\"areas\":[...]}}",
+      "GET /curbs/policies": "200 {\"data\":{\"policies\":[...]}}",
+      "GET /curbs/policies/{id}": "200 {\"data\":policy} | 404",
+      "GET /curbs/objects": "404 (optional endpoint not implemented)",
+      "auth": "none required"
+    },
+    "apds": {
+      "GET /places": "HierarchyElementList, pageSize 2, meta {referenceInstant:0, offset, pageSize, total}. Params: page, latitude, longitude, radius (metres, haversine R=6371008.8 to indicativePointLocation[0]; elements without a point are excluded when filtering), type (comma list), expand (ignored). Any other param -> 400.",
+      "GET /places/{id}": "HierarchyElement | 404",
+      "GET /rights/specs": "RightSpecificationList, pageSize 2. Params: page. Any other param -> 400.",
+      "GET /rights/specs/{id}": "RightSpecification | 404",
+      "GET /rights/assigned": "AssignedRightList, pageSize 100. Params: right_spec (comma list; rightSpecification.id must be in it), credential_id (exact match on any rightHolder.credentials[].identifier.id), credential_type (comma list; the matching credential's type must be in it), page. Any other param -> 400.",
+      "unknown path": "404"
+    }
+  },
+  "matching": "expect.body is a subset match: every expected object key must be present and match; arrays must have equal length and match element-wise; the string \"<any>\" matches any present value. Each case starts a fresh service instance."
+}

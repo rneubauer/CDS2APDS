@@ -1,0 +1,19 @@
+{
+  "id": "7d41e6b2-8c3f-4a9d-b210-00000000f003",
+  "version": 3,
+  "type": "place",
+  "name": [{ "language": "en", "string": "Library Surface Lot" }],
+  "layer": 0,
+  "hierarchyElementRecord": { "creationTime": "2026-01-01T00:00:00Z" },
+  "hierarchyElementReference": {
+    "elementId": { "id": "7d41e6b2-8c3f-4a9d-b210-00000000f003", "version": 3 },
+    "supply": [{ "supplyViewType": "spaceView", "supplyQuantity": 80 }],
+    "demandTable": [{
+      "timestamp": "2026-01-01T12:25:00Z",
+      "demandType": [{ "recordDateTime": "2026-01-01T12:25:00Z", "percentage": 75, "occupancyCalculation": "derived" }]
+    }]
+  },
+  "timeZone": "America/Denver",
+  "indicativePointLocation": [{ "type": "Point", "coordinates": [-105.28220, 40.01920] }],
+  "characteristics": { "openToPublic": true, "spacesTotal": 80 }
+}

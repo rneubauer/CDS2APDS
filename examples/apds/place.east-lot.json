@@ -1,0 +1,11 @@
+{
+  "id": "7d41e6b2-8c3f-4a9d-b210-00000000f004",
+  "version": 1,
+  "type": "place",
+  "name": [{ "language": "en", "string": "East Park-and-Ride" }],
+  "layer": 0,
+  "hierarchyElementRecord": { "creationTime": "2026-01-01T00:00:00Z" },
+  "timeZone": "America/Denver",
+  "indicativePointLocation": [{ "type": "Point", "coordinates": [-105.26000, 40.01700] }],
+  "characteristics": { "openToPublic": true }
+}

@@ -1,0 +1,16 @@
+[
+  { "file": "cds/curb_area.civic-district.json",        "spec": "cds",  "schema": "curb_area.yaml" },
+  { "file": "cds/curb_zone.garage-driveway.json",       "spec": "cds",  "schema": "curb_zone.yaml" },
+  { "file": "cds/curb_zone.metered.json",               "spec": "cds",  "schema": "curb_zone.yaml" },
+  { "file": "cds/curb_zone.resident-permit.json",       "spec": "cds",  "schema": "curb_zone.yaml" },
+  { "file": "cds/curb_policy.no-stopping.json",         "spec": "cds",  "schema": "curb_policy.yaml" },
+  { "file": "cds/curb_policy.metered.json",             "spec": "cds",  "schema": "curb_policy.yaml" },
+  { "file": "cds/curb_policy.resident-permit.json",     "spec": "cds",  "schema": "curb_policy.yaml" },
+  { "file": "cds/curb_event.permit-check.json",         "spec": "cds",  "schema": "curb_event.yaml" },
+  { "file": "apds/place.civic-garage.json",             "spec": "apds", "schema": "Place" },
+  { "file": "apds/place.library-lot.json",             "spec": "apds", "schema": "Place" },
+  { "file": "apds/place.east-lot.json",                "spec": "apds", "schema": "Place" },
+  { "file": "apds/vehicular-access.main-st-entry.json", "spec": "apds", "schema": "VehicularAccess" },
+  { "file": "apds/right-spec.zone-a-permit.json",       "spec": "apds", "schema": "RightSpecification" },
+  { "file": "apds/assigned-right.zone-a-permit.json",   "spec": "apds", "schema": "AssignedRight" }
+]

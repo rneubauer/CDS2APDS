@@ -1,0 +1,17 @@
+{
+  "id": "7d41e6b2-8c3f-4a9d-b210-00000000f101",
+  "version": 1,
+  "type": "permitParking",
+  "description": [{ "language": "en", "string": "Zone A resident permit - valid on-street in Zone A and at the Civic Garage" }],
+  "transferable": false,
+  "credentials": ["permit", "licensePlate"],
+  "validity": {
+    "validityStatus": "definedByValidityTimeSpec",
+    "validityTimeSpecification": {
+      "overallStartTime": "2026-01-01T00:00:00Z",
+      "overallEndTime": "2027-01-01T00:00:00Z"
+    }
+  },
+  "issuer": { "id": "example-city-parking", "version": 1, "className": "Organisation" },
+  "hierarchyElements": [{ "id": "7d41e6b2-8c3f-4a9d-b210-00000000f001", "version": 1 }]
+}

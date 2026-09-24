@@ -1,0 +1,22 @@
+{
+  "id": "7d41e6b2-8c3f-4a9d-b210-00000000f201",
+  "version": 1,
+  "rightSpecification": { "id": "7d41e6b2-8c3f-4a9d-b210-00000000f101", "version": 1 },
+  "rightHolder": {
+    "credentials": [
+      {
+        "type": "permit",
+        "credentialAssignedType": "other",
+        "identifier": { "id": "ZA-004217", "className": "ExampleCityPermit" }
+      },
+      {
+        "type": "licensePlate",
+        "credentialAssignedType": "vehicle",
+        "identifier": { "id": "EXM1234", "className": "LicensePlate" }
+      }
+    ]
+  },
+  "issueMethod": "permit",
+  "issuanceTime": "2026-01-01T00:00:00Z",
+  "expiry": "2026-12-31T23:59:59Z"
+}

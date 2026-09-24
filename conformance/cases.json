@@ -1,0 +1,185 @@
+[
+  {
+    "name": "health before sync reports zero links",
+    "steps": [
+      { "request": { "method": "GET", "path": "/health" },
+        "expect": { "status": 200, "body": { "success": true, "data": { "status": "ok", "links": 0, "last_sync": null }, "error": null } } }
+    ]
+  },
+  {
+    "name": "sync harvests both sides and merges links",
+    "steps": [
+      { "request": { "method": "POST", "path": "/sync" },
+        "expect": { "status": 200, "body": { "success": true, "error": null, "data": {
+          "synced_at": "<any>",
+          "issues": [],
+          "links": [
+            { "kind": "access", "status": "confirmed", "cds": { "type": "CurbZone", "id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b001" }, "apds": { "type": "vehicularAccess", "id": "7d41e6b2-8c3f-4a9d-b210-00000000f002" } },
+            { "kind": "permit", "status": "cds_only", "cds": { "type": "CurbPolicy", "id": "3f2a9c1e-5b7d-4e8a-9c01-00000000c003" }, "apds": { "type": "RightSpecification", "id": "7d41e6b2-8c3f-4a9d-b210-00000000f101" } },
+            { "kind": "supply", "status": "confirmed", "cds": { "type": "CurbArea", "id": "3f2a9c1e-5b7d-4e8a-9c01-00000000a001" }, "apds": { "type": "place", "id": "7d41e6b2-8c3f-4a9d-b210-00000000f001" } }
+          ] } } } },
+      { "request": { "method": "GET", "path": "/health" },
+        "expect": { "status": 200, "body": { "data": { "status": "ok", "links": 3, "last_sync": "<any>" } } } }
+    ]
+  },
+  {
+    "name": "links filter by cds id (lazy sync)",
+    "steps": [
+      { "request": { "method": "GET", "path": "/links?cds_id=3f2a9c1e-5b7d-4e8a-9c01-00000000b001" },
+        "expect": { "status": 200, "body": { "success": true, "data": [
+          { "kind": "access", "status": "confirmed", "cds": { "type": "CurbZone", "id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b001" }, "apds": { "type": "vehicularAccess", "id": "7d41e6b2-8c3f-4a9d-b210-00000000f002" } }
+        ] } } },
+      { "request": { "method": "GET", "path": "/links?kind=permit&apds_id=7d41e6b2-8c3f-4a9d-b210-00000000f101" },
+        "expect": { "status": 200, "body": { "data": [ { "kind": "permit", "cds": { "id": "3f2a9c1e-5b7d-4e8a-9c01-00000000c003" } } ] } } },
+      { "request": { "method": "GET", "path": "/links?kind=bogus" },
+        "expect": { "status": 400, "body": { "success": false, "data": null, "error": { "code": "invalid_request" } } } }
+    ]
+  },
+  {
+    "name": "off-street summary for a full metered zone",
+    "steps": [
+      { "request": { "method": "GET", "path": "/zones/3f2a9c1e-5b7d-4e8a-9c01-00000000b002/off-street" },
+        "expect": { "status": 200, "body": { "success": true, "error": null, "data": {
+          "curb_zone_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b002",
+          "origin": { "lat": 40.017015, "lng": -105.2796 },
+          "radius_m": 400,
+          "places": [
+            { "id": "7d41e6b2-8c3f-4a9d-b210-00000000f001", "version": 1, "name": "Civic Garage", "linked": true,
+              "distance_m": 59, "spaces_total": 420, "spaces_available": 119, "occupancy_time": "2026-01-01T12:30:00Z",
+              "open_to_public": true, "apds_url": "https://apds.example.org/v4/places/7d41e6b2-8c3f-4a9d-b210-00000000f001",
+              "access_points": [ { "id": "7d41e6b2-8c3f-4a9d-b210-00000000f002", "name": "Civic Garage - Main St entrance", "access_type": "entry", "curb_zone_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b001" } ] },
+            { "id": "7d41e6b2-8c3f-4a9d-b210-00000000f003", "version": 3, "name": "Library Surface Lot", "linked": false,
+              "distance_m": 329, "spaces_total": 80, "spaces_available": 20, "occupancy_time": "2026-01-01T12:25:00Z",
+              "open_to_public": true, "apds_url": "https://apds.example.org/v4/places/7d41e6b2-8c3f-4a9d-b210-00000000f003",
+              "access_points": [] }
+          ] } } } }
+    ]
+  },
+  {
+    "name": "off-street wider radius includes a place with unknown capacity",
+    "steps": [
+      { "request": { "method": "GET", "path": "/zones/3f2a9c1e-5b7d-4e8a-9c01-00000000b002/off-street?radius_m=2000" },
+        "expect": { "status": 200, "body": { "data": { "radius_m": 2000, "places": [
+          { "id": "7d41e6b2-8c3f-4a9d-b210-00000000f001" },
+          { "id": "7d41e6b2-8c3f-4a9d-b210-00000000f003" },
+          { "id": "7d41e6b2-8c3f-4a9d-b210-00000000f004", "linked": false, "distance_m": 1669, "spaces_total": null, "spaces_available": null, "occupancy_time": null, "open_to_public": true, "access_points": [] }
+        ] } } } }
+    ]
+  },
+  {
+    "name": "off-street input and not-found errors",
+    "steps": [
+      { "request": { "method": "GET", "path": "/zones/3f2a9c1e-5b7d-4e8a-9c01-00000000b002/off-street?radius_m=0" },
+        "expect": { "status": 400, "body": { "success": false, "error": { "code": "invalid_request" } } } },
+      { "request": { "method": "GET", "path": "/zones/3f2a9c1e-5b7d-4e8a-9c01-00000000b002/off-street?radius_m=abc" },
+        "expect": { "status": 400, "body": { "error": { "code": "invalid_request" } } } },
+      { "request": { "method": "GET", "path": "/zones/00000000-0000-4000-8000-000000000000/off-street" },
+        "expect": { "status": 404, "body": { "success": false, "data": null, "error": { "code": "not_found" } } } }
+    ]
+  },
+  {
+    "name": "permit valid on-street for a garage-issued right",
+    "steps": [
+      { "request": { "method": "POST", "path": "/permits/verify", "body": { "curb_zone_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003", "credential": "ZA-004217", "at": "2026-06-01T12:00:00Z" } },
+        "expect": { "status": 200, "body": { "success": true, "error": null, "data": {
+          "curb_zone_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003",
+          "at": "2026-06-01T12:00:00Z",
+          "programmes": [ { "curb_policy_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000c003", "right_specification_id": "7d41e6b2-8c3f-4a9d-b210-00000000f101" } ],
+          "result": "valid",
+          "assigned_right": { "id": "7d41e6b2-8c3f-4a9d-b210-00000000f201", "version": 1, "expiry": "2026-12-31T23:59:59Z" },
+          "credential_masked": "ZA-***217" } } } }
+    ]
+  },
+  {
+    "name": "permit credential normalisation and plate credentials",
+    "steps": [
+      { "request": { "method": "POST", "path": "/permits/verify", "body": { "curb_zone_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003", "credential": "  za-004217 ", "credential_type": "permit", "at": "2026-06-01T12:00:00Z" } },
+        "expect": { "status": 200, "body": { "data": { "result": "valid", "credential_masked": "ZA-***217" } } } },
+      { "request": { "method": "POST", "path": "/permits/verify", "body": { "curb_zone_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003", "credential": "EXM1234", "credential_type": "licensePlate", "at": "2026-06-01T12:00:00Z" } },
+        "expect": { "status": 200, "body": { "data": { "result": "valid", "credential_masked": "EXM***234" } } } },
+      { "request": { "method": "POST", "path": "/permits/verify", "body": { "curb_zone_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003", "credential": "EXM1234", "credential_type": "permit", "at": "2026-06-01T12:00:00Z" } },
+        "expect": { "status": 200, "body": { "data": { "result": "not_found", "assigned_right": null } } } }
+    ]
+  },
+  {
+    "name": "permit outcomes over time and for unknown credentials",
+    "steps": [
+      { "request": { "method": "POST", "path": "/permits/verify", "body": { "curb_zone_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003", "credential": "ZA-004217", "at": "2027-02-01T00:00:00Z" } },
+        "expect": { "status": 200, "body": { "data": { "result": "expired", "assigned_right": { "id": "7d41e6b2-8c3f-4a9d-b210-00000000f201" } } } } },
+      { "request": { "method": "POST", "path": "/permits/verify", "body": { "curb_zone_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003", "credential": "ZA-004217", "at": "2025-12-01T00:00:00Z" } },
+        "expect": { "status": 200, "body": { "data": { "result": "not_yet_valid" } } } },
+      { "request": { "method": "POST", "path": "/permits/verify", "body": { "curb_zone_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003", "credential": "ZA-999999", "at": "2026-06-01T12:00:00Z" } },
+        "expect": { "status": 200, "body": { "data": { "result": "not_found", "assigned_right": null, "credential_masked": "ZA-***999" } } } }
+    ]
+  },
+  {
+    "name": "permit check on a zone without a permit programme",
+    "steps": [
+      { "request": { "method": "POST", "path": "/permits/verify", "body": { "curb_zone_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b002", "credential": "ZA-004217", "at": "2026-06-01T12:00:00Z" } },
+        "expect": { "status": 200, "body": { "data": { "programmes": [], "result": "no_programme", "assigned_right": null } } } }
+    ]
+  },
+  {
+    "name": "permit request validation",
+    "steps": [
+      { "request": { "method": "POST", "path": "/permits/verify", "body": { "curb_zone_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003" } },
+        "expect": { "status": 400, "body": { "success": false, "error": { "code": "invalid_request" } } } },
+      { "request": { "method": "POST", "path": "/permits/verify", "body": { "curb_zone_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003", "credential": "ZA-004217", "credential_type": "barcode" } },
+        "expect": { "status": 400, "body": { "error": { "code": "invalid_request" } } } },
+      { "request": { "method": "POST", "path": "/permits/verify", "body": { "curb_zone_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003", "credential": "ZA-004217", "at": "yesterday" } },
+        "expect": { "status": 400, "body": { "error": { "code": "invalid_request" } } } },
+      { "request": { "method": "POST", "path": "/permits/verify", "body": { "curb_zone_id": "00000000-0000-4000-8000-000000000000", "credential": "ZA-004217" } },
+        "expect": { "status": 404, "body": { "error": { "code": "not_found" } } } }
+    ]
+  },
+  {
+    "name": "webhook deletes an access point and the link becomes one-sided",
+    "steps": [
+      { "request": { "method": "POST", "path": "/webhooks/apds",
+                     "headers": { "X-APDS-Event-Type": "PlaceDeleted", "X-Link-Webhook-Token": "conformance-token" },
+                     "body": { "id": "7d41e6b2-8c3f-4a9d-b210-00000000f002", "version": 1, "type": "vehicularAccess" } },
+        "expect": { "status": 200, "body": { "success": true, "data": { "event_type": "PlaceDeleted", "applied": true } } } },
+      { "request": { "method": "GET", "path": "/links?cds_id=3f2a9c1e-5b7d-4e8a-9c01-00000000b001" },
+        "expect": { "status": 200, "body": { "data": [
+          { "kind": "supply", "status": "cds_only", "cds": { "type": "CurbZone", "id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b001" }, "apds": { "type": "place", "id": "7d41e6b2-8c3f-4a9d-b210-00000000f002" } }
+        ] } } },
+      { "request": { "method": "GET", "path": "/issues" },
+        "expect": { "status": 200, "body": { "data": [
+          { "code": "apds_target_missing", "cds": { "type": "CurbZone", "id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b001" }, "apds": { "type": "place", "id": "7d41e6b2-8c3f-4a9d-b210-00000000f002" }, "detail": "<any>" }
+        ] } } }
+    ]
+  },
+  {
+    "name": "webhook upserts a new access point linked to a curb zone",
+    "steps": [
+      { "request": { "method": "POST", "path": "/webhooks/apds",
+                     "headers": { "X-APDS-Event-Type": "PlaceCreated", "X-Link-Webhook-Token": "conformance-token" },
+                     "body": { "id": "7d41e6b2-8c3f-4a9d-b210-00000000f005", "version": 1, "type": "vehicularAccess",
+                               "name": [ { "language": "en", "string": "Library Lot - Oak St exit" } ], "layer": 1,
+                               "parentId": { "id": "7d41e6b2-8c3f-4a9d-b210-00000000f003", "version": 3 },
+                               "hierarchyElementRecord": { "creationTime": "2026-01-02T00:00:00Z" },
+                               "operatorDefinedReference": { "id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003", "version": 1, "className": "CdsCurbZone" },
+                               "accessType": "exit" } },
+        "expect": { "status": 200, "body": { "data": { "event_type": "PlaceCreated", "applied": true } } } },
+      { "request": { "method": "GET", "path": "/links?apds_id=7d41e6b2-8c3f-4a9d-b210-00000000f005" },
+        "expect": { "status": 200, "body": { "data": [
+          { "kind": "access", "status": "apds_only", "cds": { "type": "CurbZone", "id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003" }, "apds": { "type": "vehicularAccess", "id": "7d41e6b2-8c3f-4a9d-b210-00000000f005" } }
+        ] } } }
+    ]
+  },
+  {
+    "name": "webhook security and validation",
+    "steps": [
+      { "request": { "method": "POST", "path": "/webhooks/apds", "headers": { "X-APDS-Event-Type": "PlaceDeleted" }, "body": { "id": "x" } },
+        "expect": { "status": 401, "body": { "success": false, "error": { "code": "unauthorized" } } } },
+      { "request": { "method": "POST", "path": "/webhooks/apds", "headers": { "X-APDS-Event-Type": "PlaceDeleted", "X-Link-Webhook-Token": "wrong" }, "body": { "id": "x" } },
+        "expect": { "status": 401, "body": { "error": { "code": "unauthorized" } } } },
+      { "request": { "method": "POST", "path": "/webhooks/apds", "headers": { "X-Link-Webhook-Token": "conformance-token" }, "body": { "id": "x" } },
+        "expect": { "status": 400, "body": { "error": { "code": "invalid_request" } } } },
+      { "request": { "method": "POST", "path": "/webhooks/apds", "headers": { "X-APDS-Event-Type": "NotAnEvent", "X-Link-Webhook-Token": "conformance-token" }, "body": { "id": "x" } },
+        "expect": { "status": 400, "body": { "error": { "code": "invalid_request" } } } },
+      { "request": { "method": "POST", "path": "/webhooks/apds", "headers": { "X-APDS-Event-Type": "SessionCreated", "X-Link-Webhook-Token": "conformance-token" }, "body": { "id": "s1", "version": 1 } },
+        "expect": { "status": 200, "body": { "data": { "event_type": "SessionCreated", "applied": false } } } }
+    ]
+  }
+]

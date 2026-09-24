@@ -1,0 +1,16 @@
+{
+  "id": "7d41e6b2-8c3f-4a9d-b210-00000000f002",
+  "version": 1,
+  "type": "vehicularAccess",
+  "name": [{ "language": "en", "string": "Civic Garage - Main St entrance" }],
+  "layer": 1,
+  "parentId": { "id": "7d41e6b2-8c3f-4a9d-b210-00000000f001", "version": 1 },
+  "hierarchyElementRecord": { "creationTime": "2026-01-01T00:00:00Z" },
+  "operatorDefinedReference": {
+    "id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b001",
+    "version": 1,
+    "className": "CdsCurbZone"
+  },
+  "accessType": "entry",
+  "indicativePointLocation": [{ "type": "Point", "coordinates": [-105.27895, 40.01704] }]
+}

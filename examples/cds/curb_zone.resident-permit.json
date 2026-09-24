@@ -1,0 +1,22 @@
+{
+  "curb_zone_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003",
+  "name": "Oak St 200 block - Zone A resident permit",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [[
+      [-105.28050, 40.01750],
+      [-105.28047, 40.01750],
+      [-105.28047, 40.01820],
+      [-105.28050, 40.01820],
+      [-105.28050, 40.01750]
+    ]]
+  },
+  "curb_policy_ids": ["3f2a9c1e-5b7d-4e8a-9c01-00000000c003"],
+  "published_date": 1767225600000,
+  "last_updated_date": 1767225600000,
+  "start_date": 1767225600000,
+  "street_name": "Oak St",
+  "street_side": "E",
+  "length": 7800,
+  "curb_area_ids": ["3f2a9c1e-5b7d-4e8a-9c01-00000000a001"]
+}

@@ -1,0 +1,24 @@
+title: Vehicle Type
+x-stoplight:
+  id: 1525213d884c3
+type: string
+enum:
+  - bicycle
+  - bus
+  - cargo_bicycle
+  - car
+  - delivery_robot
+  - scooter
+  - scooter_standing
+  - scooter_seated
+  - moped
+  - motorcycle
+  - truck
+  - van
+  - freight
+  - other
+  - unspecified
+description: |-
+  Type of the vehicle that performed the event.
+
+  Required for sources capable of determining vehicle type.
