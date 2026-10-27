@@ -65,7 +65,9 @@ CDS_BASE_URL=https://cds.example.org APDS_BASE_URL=https://apds.example.org/v4 n
 ## Status
 
 Proposal v0.1, not endorsed by the Open Mobility Foundation or APDS. The upstream schema issues
-listed in [profile §2.9](docs/02-link-profile.md#29-upstream-schema-issues-found) are candidates to report upstream.
+listed in [profile §2.9](docs/02-link-profile.md#29-upstream-schema-issues-found) are being reported upstream:
+the APDS one as [parkingdata/spec#33](https://github.com/parkingdata/spec/issues/33); drafts for the CDS ones
+are in [`docs/upstream-issues/`](docs/upstream-issues).
 
 Licences: the vendored specifications keep their own licences (APDS: MIT; CDS OpenAPI: CC BY 4.0).
 See [`vendor/README.md`](vendor/README.md).
