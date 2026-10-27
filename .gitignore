@@ -11,6 +11,9 @@ node_modules/
 dist/
 coverage/
 
+# Local environment
+.env
+
 # OS / editors
 .DS_Store
 Thumbs.db
