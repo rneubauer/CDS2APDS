@@ -168,7 +168,9 @@ version, so both always resolve to the **latest** counterpart record.
 ## 2.9 Upstream schema issues found
 
 These were found while validating the examples. `tools/validate_examples.py` patches them in memory
-and prints them on every run.
+and prints them on every run. The APDS issue is reported as
+[parkingdata/spec#33](https://github.com/parkingdata/spec/issues/33); the CDS issues are drafted in
+[`upstream-issues/`](upstream-issues) and not yet reported.
 
 | Spec | Location | Issue | Suggested fix |
 |---|---|---|---|
