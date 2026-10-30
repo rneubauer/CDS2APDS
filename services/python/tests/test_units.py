@@ -1,6 +1,7 @@
 """Unit tests for behaviour the shared conformance fixtures do not exercise."""
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 
 import httpx
@@ -171,6 +172,24 @@ def test_upstream_auth_headers_and_no_credential_leak() -> None:
     apds_req = next(r for r in upstream.requests if r.url.host == "apds.example.org")
     assert cds_req.headers["authorization"] == "Bearer c-tok"
     assert apds_req.headers["x-mcc-access-token"] == "a-tok" and "authorization" not in apds_req.headers
+
+
+def test_credential_never_logged(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.DEBUG)  # root only; the service must keep httpx itself quiet
+    with _client() as client:
+        body = {"curb_zone_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003", "credential": "ZA-004217"}
+        assert client.post("/permits/verify", json=body).status_code == 200
+    assert "ZA-004217" not in caplog.text
+    assert logging.getLogger("httpx").getEffectiveLevel() >= logging.WARNING
+
+
+def test_upstream_redirect_is_not_followed() -> None:
+    def redirecting(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(302, headers={"location": "https://evil.example/"}, json={"data": {}})
+
+    with _client(redirecting) as client:
+        resp = client.post("/sync")
+    assert resp.status_code == 502 and resp.json()["error"]["code"] == "upstream_error"
 
 
 def test_request_body_validation() -> None:

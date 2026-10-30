@@ -149,6 +149,18 @@ describe("HTTP edge cases", () => {
     expect((await offline.inject({ method: "POST", url: "/sync" })).statusCode).toBe(502);
   });
 
+  it("never follows upstream redirects", async () => {
+    const seen: (RequestRedirect | undefined)[] = [];
+    const redirecting = app(async (_url, init) => {
+      seen.push(init?.redirect);
+      return new Response(JSON.stringify({ data: {} }), { status: 302, headers: { location: "https://evil.example/" } });
+    });
+    const resp = await redirecting.inject({ method: "POST", url: "/sync" });
+    expect([resp.statusCode, resp.json().error.code]).toEqual([502, "upstream_error"]);
+    expect(seen.length).toBeGreaterThan(0);
+    expect(seen.every((mode) => mode === "manual")).toBe(true);
+  });
+
   it("sends upstream auth headers and never echoes credentials", async () => {
     const upstream = new FakeUpstream();
     const svc = app(upstream.fetch, { CDS_TOKEN: "c-tok", APDS_TOKEN: "a-tok", APDS_AUTH_SCHEME: "mcc" });

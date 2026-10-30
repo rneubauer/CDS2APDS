@@ -6,6 +6,7 @@ request path, never query strings (which may contain credentials).
 """
 from __future__ import annotations
 
+import logging
 from typing import Any
 from urllib.parse import quote
 
@@ -15,6 +16,11 @@ from .config import Settings
 from .errors import upstream_error
 
 MAX_PAGES = 1000
+
+# httpx and httpcore log every request URL at INFO, and the permit lookup carries the
+# credential in its query string (profile §2.5: never log credentials in clear text).
+for _name in ("httpx", "httpcore"):
+    logging.getLogger(_name).setLevel(logging.WARNING)
 
 
 class _Http:
@@ -31,7 +37,7 @@ class _Http:
             raise upstream_error(f"{self._label} request to {path} failed: {type(exc).__name__}") from None
         if resp.status_code == 404 and allow_404:
             return None
-        if resp.status_code >= 400:
+        if not resp.is_success:
             raise upstream_error(f"{self._label} returned HTTP {resp.status_code} for {path}")
         try:
             return resp.json()
