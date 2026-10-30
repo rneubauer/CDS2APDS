@@ -115,7 +115,11 @@ def programme_active(spec: dict[str, Any] | None, at: datetime) -> bool:
     if not isinstance(spec, dict):
         return False
     validity = spec.get("validity")
-    if not isinstance(validity, dict) or validity.get("validityStatus") in INACTIVE_STATUSES:
+    if not isinstance(validity, dict):
+        return False
+    # A non-string status counts as absent (profile §2.5: only "suspended" and "planned" are inactive).
+    status = validity.get("validityStatus")
+    if isinstance(status, str) and status in INACTIVE_STATUSES:
         return False
     period = validity.get("validityTimeSpecification")
     if not isinstance(period, dict):
@@ -141,8 +145,9 @@ def evaluate(right: dict[str, Any], spec: dict[str, Any] | None, at: datetime) -
 
 def _latest_first(right: dict[str, Any]) -> tuple[bool, float, str]:
     expiry = _optional_instant(right.get("expiry"))
-    # A right without an expiry sorts as having the latest possible expiry.
-    return (expiry is not None, -expiry.timestamp() if expiry else 0.0, str(right.get("id", "")))
+    # A right without an expiry sorts as having the latest possible expiry; a missing or non-string id as "".
+    right_id = right.get("id")
+    return (expiry is not None, -expiry.timestamp() if expiry else 0.0, right_id if isinstance(right_id, str) else "")
 
 
 def decide(outcomes: list[tuple[dict[str, Any], str]]) -> tuple[str, dict[str, Any] | None]:

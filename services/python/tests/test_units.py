@@ -14,7 +14,7 @@ from cds_apds_link.geo import centroid, point_of, round_half_up
 from cds_apds_link import registry as registry_module
 from cds_apds_link.offstreet import availability, linked_place_ids, multilingual
 from cds_apds_link.permits import decide, evaluate, mask_credential, parse_instant, programme_active, programmes
-from cds_apds_link.registry import ApdsSnapshot, CdsSnapshot, Link, Ref, Registry, build_links, parse_apds_reference
+from cds_apds_link.registry import ApdsSnapshot, CdsSnapshot, Issue, Link, Ref, Registry, build_links, parse_apds_reference
 from cds_apds_link.upstream import ApdsClient
 from fake_upstream import CONFORMANCE, FakeUpstream, load_json
 
@@ -465,3 +465,46 @@ def test_dot_segment_ids_never_reach_upstream() -> None:
 
     before = len(upstream.requests)
     assert asyncio.run(right_spec("..")) is None and len(upstream.requests) == before
+
+
+# --- parity leftovers --------------------------------------------------------
+
+START = {"overallStartTime": "2026-01-01T00:00:00Z"}
+
+
+def test_prototype_names_are_not_cds_class_names() -> None:
+    cds = CdsSnapshot(zones=[{"curb_zone_id": "z1"}])
+    names = ["constructor", "toString", "__proto__", "hasOwnProperty"]
+    elements = [{"id": f"p{i}", "operatorDefinedReference": {"id": "z1", "className": n}} for i, n in enumerate(names)]
+    assert build_links(cds, ApdsSnapshot.from_lists(elements, [])) == ([], [])
+
+
+def test_non_string_upstream_values_count_as_absent() -> None:
+    for status in (["suspended"], {"planned": 1}, 5, None):
+        assert programme_active({"validity": {"validityStatus": status, "validityTimeSpecification": START}}, AT)
+    url = f"{APDS}/places/p1"
+    assert parse_apds_reference({"name": ["APDS"], "reference_url": url}) is None
+    assert parse_apds_reference({"name": "apdſ", "reference_url": url}) is None  # "ſ".casefold() == "s"
+    assert parse_apds_reference({"name": "APDS", "reference_url": [url]}) == ("", "")
+    for element_type in (["vehicularAccess"], True, ""):
+        cds = CdsSnapshot(zones=[{"curb_zone_id": "z1", "external_references": [ext(url)]}])
+        links, _ = build_links(cds, ApdsSnapshot.from_lists([{"id": "p1", "type": element_type}], []))
+        assert [(link.kind, link.apds.type) for link in links] == [("supply", "place")]
+
+
+def test_rights_without_a_string_id_tie_break_as_empty() -> None:
+    expiry = "2026-07-01T00:00:00Z"
+    numeric, named = {"id": 5, "expiry": expiry}, {"id": "4", "expiry": expiry}
+    null, missing = {"id": None, "expiry": expiry}, {"expiry": expiry}
+    assert decide([(named, "valid"), (numeric, "valid")]) == ("valid", numeric)
+    assert decide([({"id": "0", "expiry": expiry}, "expired"), (null, "expired")]) == ("expired", null)
+    assert decide([(named, "expired"), (missing, "expired")]) == ("expired", missing)
+
+
+def test_issues_tie_break_on_detail() -> None:
+    issues = [Issue("invalid_reference", Ref("CurbZone", "x"), None, d) for d in ("b", "a")]
+    assert [i.detail for i in sorted(issues, key=Issue.sort_key)] == ["a", "b"]
+    spec_ref = [ext(f"{APDS}/rights/specs/r1")]
+    cds = CdsSnapshot(zones=[{"curb_zone_id": "x", "external_references": spec_ref}], areas=[{"curb_area_id": "x", "external_references": spec_ref}])
+    _, found = build_links(cds, ApdsSnapshot())
+    assert [i.cds.type for i in found if i.cds] == ["CurbArea", "CurbZone"]
