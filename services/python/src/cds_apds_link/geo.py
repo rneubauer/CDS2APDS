@@ -4,6 +4,8 @@ from __future__ import annotations
 import math
 from typing import Any
 
+from .jsonutil import is_number
+
 EARTH_RADIUS_M = 6_371_008.8
 
 
@@ -20,6 +22,10 @@ def haversine_m(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     dp, dl = p2 - p1, math.radians(lng2 - lng1)
     a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
     return 2 * EARTH_RADIUS_M * math.asin(math.sqrt(a))
+
+
+def _is_position(p: Any) -> bool:
+    return isinstance(p, list) and len(p) >= 2 and is_number(p[0]) and is_number(p[1])
 
 
 def _positions(geometry: Any) -> list[list[float]]:
@@ -40,7 +46,7 @@ def _positions(geometry: Any) -> list[list[float]]:
     if not isinstance(points, list) or not points:
         raise ValueError("geometry has no positions")
     for p in points:
-        if not (isinstance(p, list) and len(p) >= 2 and all(isinstance(v, (int, float)) for v in p[:2])):
+        if not _is_position(p):
             raise ValueError("invalid position")
     return points
 
@@ -61,6 +67,6 @@ def point_of(location: Any) -> tuple[float, float] | None:
     if not isinstance(first, dict) or first.get("type") != "Point":
         return None
     coords = first.get("coordinates")
-    if isinstance(coords, list) and len(coords) >= 2 and all(isinstance(v, (int, float)) for v in coords[:2]):
+    if _is_position(coords):
         return float(coords[1]), float(coords[0])
     return None

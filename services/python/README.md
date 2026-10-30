@@ -32,4 +32,5 @@ pytest --cov                     # conformance suite + unit tests
 | `offstreet.py` | T2 nearby off-street summary |
 | `permits.py` | T3 permit programme detection and credential evaluation |
 | `geo.py` | Centroid, haversine, rounding |
+| `jsonutil.py` | Narrowing helpers for untrusted JSON (non-arrays as `[]`, booleans are not numbers) |
 | `app.py` | HTTP routes, the response envelope and error mapping |

@@ -15,11 +15,14 @@ import httpx
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from . import permits
 from .config import Settings
 from .errors import ServiceError, invalid_request, not_found, unauthorized, upstream_error
 from .geo import centroid
+from .jsonutil import as_list
 from .offstreet import build_summary
 from .registry import LINK_KINDS, ApdsSnapshot, CdsSnapshot, Registry
 from .upstream import ApdsClient, CdsClient
@@ -88,7 +91,7 @@ class LinkService:
 
     async def verify_permit(self, zone_id: str, credential: str, credential_type: str | None, at: datetime) -> dict[str, Any]:
         zone = await self.zone(zone_id)
-        policy_ids = [p for p in (zone.get("curb_policy_ids") or []) if isinstance(p, str)]
+        policy_ids = [p for p in as_list(zone.get("curb_policy_ids")) if isinstance(p, str)]
         policies = [p for p in await asyncio.gather(*(self.cds.policy(pid) for pid in policy_ids)) if p is not None]
         progs = permits.programmes(policies)
         base = {
@@ -195,6 +198,36 @@ def _check_webhook_token(request: Request, expected: str | None) -> None:
         raise unauthorized("missing or invalid webhook token")
 
 
+class CatchAllErrors:
+    """Turn any uncaught exception into the 500 envelope (docs/03 §3.2).
+
+    Only the exception's type is logged: its text could contain upstream credentials. Unlike a
+    Starlette ``Exception`` handler this does not re-raise, so the server does not log a traceback.
+    """
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        started = False
+
+        async def tracked_send(message: Message) -> None:
+            nonlocal started
+            started = started or message["type"] == "http.response.start"
+            await send(message)
+
+        try:
+            await self.app(scope, receive, tracked_send)
+        except Exception as exc:
+            if started:
+                raise
+            log.error("unexpected error: %s", type(exc).__name__)
+            await fail(500, "internal_error", "internal error")(scope, receive, send)
+
+
 def create_app(
     settings: Settings,
     transport: httpx.AsyncBaseTransport | None = None,
@@ -208,8 +241,13 @@ def create_app(
         yield
         await client.aclose()
 
-    app = FastAPI(title="CDS-APDS link service", version="0.1.0", lifespan=lifespan)
+    # No generated docs routes: every response, including unknown paths, is the JSON envelope.
+    app = FastAPI(
+        title="CDS-APDS link service", version="0.1.0", lifespan=lifespan,
+        docs_url=None, redoc_url=None, openapi_url=None,
+    )
     app.state.service = service
+    app.add_middleware(CatchAllErrors)
 
     @app.exception_handler(ServiceError)
     async def _service_error(_: Request, exc: ServiceError) -> JSONResponse:
@@ -220,6 +258,16 @@ def create_app(
     @app.exception_handler(RequestValidationError)
     async def _validation_error(_: Request, __: RequestValidationError) -> JSONResponse:
         return fail(400, "invalid_request", "invalid request")
+
+    @app.exception_handler(StarletteHTTPException)
+    async def _http_error(_: Request, exc: StarletteHTTPException) -> JSONResponse:
+        # Fastify answers an unknown path and a wrong method alike with its not-found handler.
+        if exc.status_code in (404, 405):
+            return fail(404, "not_found", "route not found")
+        if 400 <= exc.status_code < 500:
+            return fail(400, "invalid_request", "invalid request")
+        log.error("unexpected error: HTTP %d", exc.status_code)
+        return fail(500, "internal_error", "internal error")
 
     @app.get("/health")
     async def health() -> JSONResponse:

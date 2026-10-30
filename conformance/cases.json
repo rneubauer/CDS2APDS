@@ -181,5 +181,34 @@
       { "request": { "method": "POST", "path": "/webhooks/apds", "headers": { "X-APDS-Event-Type": "SessionCreated", "X-Link-Webhook-Token": "conformance-token" }, "body": { "id": "s1", "version": 1 } },
         "expect": { "status": 200, "body": { "data": { "event_type": "SessionCreated", "applied": false } } } }
     ]
+  },
+  {
+    "name": "unknown routes and methods return the not_found envelope",
+    "steps": [
+      { "request": { "method": "GET", "path": "/nope" },
+        "expect": { "status": 404, "body": { "success": false, "data": null, "error": { "code": "not_found", "message": "route not found" } } } },
+      { "request": { "method": "DELETE", "path": "/health" },
+        "expect": { "status": 404, "body": { "success": false, "data": null, "error": { "code": "not_found", "message": "route not found" } } } },
+      { "request": { "method": "GET", "path": "/openapi.json" },
+        "expect": { "status": 404, "body": { "success": false, "data": null, "error": { "code": "not_found" } } } }
+    ]
+  },
+  {
+    "name": "webhook with a malformed className is ignored and the registry keeps working",
+    "steps": [
+      { "request": { "method": "POST", "path": "/webhooks/apds",
+                     "headers": { "X-APDS-Event-Type": "PlaceCreated", "X-Link-Webhook-Token": "conformance-token" },
+                     "body": { "id": "7d41e6b2-8c3f-4a9d-b210-00000000f099", "version": 1, "type": "place",
+                               "operatorDefinedReference": { "id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003", "version": 1, "className": [ "CdsCurbZone" ] } } },
+        "expect": { "status": 200, "body": { "success": true, "data": { "event_type": "PlaceCreated", "applied": true } } } },
+      { "request": { "method": "GET", "path": "/links?apds_id=7d41e6b2-8c3f-4a9d-b210-00000000f099" },
+        "expect": { "status": 200, "body": { "success": true, "data": [] } } },
+      { "request": { "method": "GET", "path": "/links?cds_id=3f2a9c1e-5b7d-4e8a-9c01-00000000b001" },
+        "expect": { "status": 200, "body": { "success": true, "data": "<any>" } } },
+      { "request": { "method": "POST", "path": "/webhooks/apds",
+                     "headers": { "X-APDS-Event-Type": "PlaceDeleted", "X-Link-Webhook-Token": "conformance-token" },
+                     "body": { "id": "7d41e6b2-8c3f-4a9d-b210-00000000f099" } },
+        "expect": { "status": 200, "body": { "data": { "event_type": "PlaceDeleted", "applied": true } } } }
+    ]
   }
 ]

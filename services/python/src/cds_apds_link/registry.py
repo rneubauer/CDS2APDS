@@ -5,6 +5,8 @@ from dataclasses import dataclass, field
 from typing import Any
 from urllib.parse import urlparse
 
+from .jsonutil import as_list
+
 LINK_KINDS = ("access", "permit", "supply")
 
 CDS_ID_FIELDS = {
@@ -17,9 +19,6 @@ CDS_ID_FIELDS = {
 CLASSNAME_TO_CDS = {"CdsCurbZone": "CurbZone", "CdsCurbArea": "CurbArea", "CdsCurbSpace": "CurbSpace", "CdsCurbObject": "CurbObject"}
 
 PLACES, RIGHT_SPECS = "places", "rights/specs"
-
-# Webhook upserts of new ids are refused beyond this many elements (or right specifications).
-MAX_REGISTRY_ENTRIES = 100_000
 
 # Webhook upserts of new ids are refused beyond this many elements (or right specifications).
 MAX_REGISTRY_ENTRIES = 100_000
@@ -100,9 +99,8 @@ def parse_apds_reference(ref: Any) -> tuple[str, str] | None:
     """Return (collection, id) for an APDS external reference, None if it is not one, or ("", "") if unusable."""
     if not isinstance(ref, dict) or str(ref.get("name", "")).casefold() != "apds":
         return None
-    url = urlparse(str(ref.get("reference_url", "")))
     # Profile §2.2: reference_url MUST be an absolute URL; anything else is unusable.
-    path = url.path if url.scheme in ("http", "https") and url.netloc else ""
+    path = _http_path(ref.get("reference_url"))
     segments = [s for s in path.split("/") if s]
     ids = ref.get("ids")
     explicit = ids[0] if isinstance(ids, list) and ids and isinstance(ids[0], str) and ids[0] else None
@@ -116,10 +114,17 @@ def parse_apds_reference(ref: Any) -> tuple[str, str] | None:
     return ("", "")
 
 
+def _http_path(raw: Any) -> str:
+    """Path of an absolute http(s) URL, or "" if the value is not one (urlparse raises on e.g. "http://[x")."""
+    try:
+        url = urlparse("" if raw is None else str(raw))
+    except ValueError:
+        return ""
+    return url.path if url.scheme in ("http", "https") and url.netloc else ""
+
+
 def apds_references(record: dict[str, Any]) -> list[tuple[str, str]]:
-    refs = record.get("external_references")
-    if not isinstance(refs, list):
-        return []
+    refs = as_list(record.get("external_references"))
     return [parsed for parsed in (parse_apds_reference(r) for r in refs) if parsed is not None]
 
 
@@ -183,16 +188,19 @@ def _cds_place(cref: Ref, apds_id: str, apds: ApdsSnapshot, merger: _Merger) -> 
 
 
 def _apds_side(cds: CdsSnapshot, apds: ApdsSnapshot, merger: _Merger) -> None:
-    known = {(t, r.get(CDS_ID_FIELDS[t])) for t, r in cds.records()}
+    # Only string ids can match a reference; other values may not even be hashable.
+    known = {(t, r.get(CDS_ID_FIELDS[t])) for t, r in cds.records() if isinstance(r.get(CDS_ID_FIELDS[t]), str)}
     successor = {
         prev: z["curb_zone_id"]
         for z in cds.zones
-        for prev in (z.get("prev_curb_zone_ids") or [])
+        for prev in as_list(z.get("prev_curb_zone_ids"))
         if isinstance(prev, str) and isinstance(z.get("curb_zone_id"), str)
     }
     for element in sorted(apds.elements.values(), key=lambda e: e["id"]):
         ref = element.get("operatorDefinedReference")
-        if not isinstance(ref, dict) or ref.get("className") not in CLASSNAME_TO_CDS or not isinstance(ref.get("id"), str):
+        if not isinstance(ref, dict) or not isinstance(ref.get("id"), str):
+            continue
+        if not isinstance(ref.get("className"), str) or ref["className"] not in CLASSNAME_TO_CDS:
             continue
         apds_type = str(element.get("type") or "place")
         aref = Ref(apds_type, element["id"])
@@ -215,7 +223,7 @@ def build_links(cds: CdsSnapshot, apds: ApdsSnapshot) -> tuple[list[Link], list[
 
 
 class Registry:
-    """In-memory registry state. All mutation goes through ``_rebuild`` so links stay consistent."""
+    """In-memory registry state. All mutation goes through ``_commit`` so links stay consistent."""
 
     def __init__(self, max_entries: int = MAX_REGISTRY_ENTRIES) -> None:
         self.max_entries = max_entries
@@ -230,32 +238,27 @@ class Registry:
         return self.last_sync is not None
 
     def replace(self, cds: CdsSnapshot, apds: ApdsSnapshot, synced_at: str) -> None:
-        self.cds, self.apds, self.last_sync = cds, apds, synced_at
-        self._rebuild()
+        self._commit(cds, apds, synced_at)
 
     def upsert_element(self, element: dict[str, Any]) -> bool:
         """Insert or replace an element. Returns False (and changes nothing) if a new id would exceed the cap."""
         if element["id"] not in self.apds.elements and len(self.apds.elements) >= self.max_entries:
             return False
-        self.apds = ApdsSnapshot({**self.apds.elements, element["id"]: element}, self.apds.right_specs)
-        self._rebuild()
+        self._commit(self.cds, ApdsSnapshot({**self.apds.elements, element["id"]: element}, self.apds.right_specs))
         return True
 
     def remove_element(self, element_id: str) -> None:
-        self.apds = ApdsSnapshot({k: v for k, v in self.apds.elements.items() if k != element_id}, self.apds.right_specs)
-        self._rebuild()
+        self._commit(self.cds, ApdsSnapshot({k: v for k, v in self.apds.elements.items() if k != element_id}, self.apds.right_specs))
 
     def upsert_right_spec(self, spec: dict[str, Any]) -> bool:
         """Insert or replace a RightSpecification. Returns False if a new id would exceed the cap."""
         if spec["id"] not in self.apds.right_specs and len(self.apds.right_specs) >= self.max_entries:
             return False
-        self.apds = ApdsSnapshot(self.apds.elements, {**self.apds.right_specs, spec["id"]: spec})
-        self._rebuild()
+        self._commit(self.cds, ApdsSnapshot(self.apds.elements, {**self.apds.right_specs, spec["id"]: spec}))
         return True
 
     def remove_right_spec(self, spec_id: str) -> None:
-        self.apds = ApdsSnapshot(self.apds.elements, {k: v for k, v in self.apds.right_specs.items() if k != spec_id})
-        self._rebuild()
+        self._commit(self.cds, ApdsSnapshot(self.apds.elements, {k: v for k, v in self.apds.right_specs.items() if k != spec_id}))
 
     def find(self, cds_id: str | None = None, apds_id: str | None = None, kind: str | None = None) -> list[Link]:
         return [
@@ -266,5 +269,8 @@ class Registry:
             and (kind is None or link.kind == kind)
         ]
 
-    def _rebuild(self) -> None:
-        self.links, self.issues = build_links(self.cds, self.apds)
+    def _commit(self, cds: CdsSnapshot, apds: ApdsSnapshot, synced_at: str | None = None) -> None:
+        """Build links for the new snapshots first, then swap all state in; a failed build changes nothing."""
+        links, issues = build_links(cds, apds)
+        last_sync = synced_at if synced_at is not None else self.last_sync
+        self.cds, self.apds, self.links, self.issues, self.last_sync = cds, apds, links, issues, last_sync
