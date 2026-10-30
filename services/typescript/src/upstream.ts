@@ -27,12 +27,17 @@ class Http {
     for (const [key, value] of Object.entries(params ?? {})) url.searchParams.set(key, value);
     let resp: Response;
     try {
-      resp = await this.fetchFn(url.toString(), { headers: this.headers, signal: AbortSignal.timeout(this.timeoutMs) });
+      // Never follow redirects: they would carry credential query strings and X-MCC-Access-Token to another host.
+      resp = await this.fetchFn(url.toString(), {
+        headers: this.headers,
+        redirect: "manual",
+        signal: AbortSignal.timeout(this.timeoutMs),
+      });
     } catch (err) {
       throw upstreamError(`${this.label} request to ${path} failed: ${(err as Error).name}`);
     }
     if (resp.status === 404 && allow404) return null;
-    if (resp.status >= 400) throw upstreamError(`${this.label} returned HTTP ${resp.status} for ${path}`);
+    if (!resp.ok) throw upstreamError(`${this.label} returned HTTP ${resp.status} for ${path}`);
     try {
       return await resp.json();
     } catch {

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
+from .jsonutil import as_list
 from .registry import RIGHT_SPECS, apds_references
 
 CREDENTIAL_TYPES = ("permit", "licensePlate")
@@ -54,7 +55,8 @@ def mask_credential(value: str) -> str:
 def _is_permit_rule(rule: Any) -> bool:
     if not isinstance(rule, dict):
         return False
-    return "permit" in (rule.get("user_classes") or []) or "permit" in (rule.get("purposes") or [])
+    # Non-arrays count as empty: "permit" in "permit_holder" would otherwise be a substring match.
+    return "permit" in as_list(rule.get("user_classes")) or "permit" in as_list(rule.get("purposes"))
 
 
 def programmes(policies: list[dict[str, Any]]) -> list[Programme]:

@@ -1,10 +1,11 @@
 """T2: nearby off-street supply for a curb zone (docs/03 §3.4, profile §2.4)."""
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from .geo import haversine_m, point_of, round_half_up
+from .jsonutil import as_list, is_int, is_number
 from .registry import Link
 
 
@@ -19,16 +20,18 @@ def multilingual(value: Any) -> str | None:
 
 
 def _instant(value: str) -> datetime:
-    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    # Naive values are UTC, so records with and without an offset stay comparable.
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
 def _latest_demand(element: dict[str, Any]) -> dict[str, Any] | None:
     ref = element.get("hierarchyElementReference")
     tables = ref.get("demandTable") if isinstance(ref, dict) else None
     records = []
-    for table in tables if isinstance(tables, list) else []:
+    for table in as_list(tables):
         rows = table.get("demandType") if isinstance(table, dict) else None
-        for record in rows if isinstance(rows, list) else []:
+        for record in as_list(rows):
             if isinstance(record, dict) and isinstance(record.get("recordDateTime"), str):
                 try:
                     records.append((_instant(record["recordDateTime"]), record))
@@ -40,12 +43,12 @@ def _latest_demand(element: dict[str, Any]) -> dict[str, Any] | None:
 def spaces_total(element: dict[str, Any]) -> int | None:
     ref = element.get("hierarchyElementReference")
     supplies = ref.get("supply") if isinstance(ref, dict) else None
-    for supply in supplies if isinstance(supplies, list) else []:
-        if isinstance(supply, dict) and supply.get("supplyViewType") == "spaceView" and isinstance(supply.get("supplyQuantity"), int):
+    for supply in as_list(supplies):
+        if isinstance(supply, dict) and supply.get("supplyViewType") == "spaceView" and is_int(supply.get("supplyQuantity")):
             return supply["supplyQuantity"]
     characteristics = element.get("characteristics")
     total = characteristics.get("spacesTotal") if isinstance(characteristics, dict) else None
-    return total if isinstance(total, int) else None
+    return total if is_int(total) else None
 
 
 def availability(element: dict[str, Any]) -> tuple[int | None, int | None, str | None]:
@@ -56,16 +59,16 @@ def availability(element: dict[str, Any]) -> tuple[int | None, int | None, str |
         return total, None, None
     available = None
     count, percentage = demand.get("count"), demand.get("percentage")
-    if total is not None and isinstance(count, int):
+    if total is not None and is_int(count):
         available = max(total - count, 0)
-    elif total is not None and isinstance(percentage, (int, float)):
+    elif total is not None and is_number(percentage):
         available = round_half_up(total * (1 - percentage / 100))
     return total, available, demand["recordDateTime"]
 
 
 def linked_place_ids(zone: dict[str, Any], links: list[Link], elements: dict[str, dict[str, Any]]) -> set[str]:
     zone_id = zone.get("curb_zone_id")
-    area_ids = set(zone.get("curb_area_ids") or [])
+    area_ids = {a for a in as_list(zone.get("curb_area_ids")) if isinstance(a, str)}
     found: set[str] = set()
     for link in links:
         if link.kind == "supply" and (
@@ -130,7 +133,7 @@ def build_summary(
     places = [summarize_place(el, origin, pid in linked_ids, elements, links, apds_base_url) for pid, el in candidates.items()]
     places.sort(key=lambda p: (not p["linked"], p["distance_m"] is None, p["distance_m"] or 0, p["id"]))
     return {
-        "curb_zone_id": zone["curb_zone_id"],
+        "curb_zone_id": zone.get("curb_zone_id"),
         "origin": {"lat": origin[0], "lng": origin[1]},
         "radius_m": radius_m,
         "places": places,
