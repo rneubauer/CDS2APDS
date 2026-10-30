@@ -6,6 +6,7 @@ request path, never query strings (which may contain credentials).
 """
 from __future__ import annotations
 
+import json
 from typing import Any
 from urllib.parse import quote
 
@@ -34,9 +35,14 @@ class _Http:
         if resp.status_code >= 400:
             raise upstream_error(f"{self._label} returned HTTP {resp.status_code} for {path}")
         try:
-            return resp.json()
+            return json.loads(resp.content, parse_constant=_reject_constant)
         except ValueError:
             raise upstream_error(f"{self._label} returned invalid JSON for {path}") from None
+
+
+def _reject_constant(name: str) -> Any:
+    """NaN and Infinity are not JSON (RFC 8259); the TypeScript service's JSON.parse rejects them too."""
+    raise ValueError(f"non-standard JSON constant {name}")
 
 
 def _segment(value: str) -> str:
