@@ -6,7 +6,7 @@ import { centroid, pointOf, roundHalfUp } from "../src/geo.js";
 import { availability, multilingual } from "../src/offstreet.js";
 import { decide, evaluate, maskCredential, parseInstant, programmeActive } from "../src/permits.js";
 import { apdsSnapshot, buildLinks, emptyCds, parseApdsReference, Registry } from "../src/registry.js";
-import type { FetchLike } from "../src/upstream.js";
+import { ApdsClient, type FetchLike } from "../src/upstream.js";
 import { FIXTURES, FakeUpstream } from "./fake-upstream.js";
 
 const AT = Date.parse("2026-06-01T00:00:00Z");
@@ -251,5 +251,52 @@ describe("review regressions", () => {
       method: "POST", url: "/permits/verify", payload: { curb_zone_id: "z", credential: "x", pad: "a".repeat(1_100_000) },
     });
     expect(resp.statusCode).toBe(400);
+  });
+});
+
+describe("input-validation parity", () => {
+  const spec = { validity: { validityStatus: "definedByValidityTimeSpec", validityTimeSpecification: { overallStartTime: "2026-01-01T00:00:00Z" } } };
+
+  it("parses instants strictly with millisecond precision", () => {
+    expect(parseInstant("2026-06-01T12:00:00.123999Z")).toBe(Date.parse("2026-06-01T12:00:00.123Z"));
+    expect(parseInstant("2026-06-01T14:00:00+02:00")).toBe(Date.parse("2026-06-01T12:00:00Z"));
+    // Both read as 12:00:00.000, so the expiry is not after `at` (the Python service agrees).
+    const at = parseInstant("2026-06-01T12:00:00.0001Z") as number;
+    expect(evaluate({ id: "a", expiry: "2026-06-01T12:00:00.0009Z" }, spec, at)).toBe("expired");
+    for (const text of [
+      "2026-02-29T00:00:00Z", "2026-01-01T24:00:00Z", "2026-06-01T12:00:00+05:60",
+      "0000-06-01T00:00:00Z", "0001-01-01T00:00:00+05:00", "9999-12-31T23:00:00-05:00",
+    ]) expect(parseInstant(text), text).toBeNull();
+    expect(evaluate({ id: "a", expiry: "2026-02-30T00:00:00Z" }, spec, AT)).toBe("expired");
+  });
+
+  it("reads demand record times with the strict instant parser", () => {
+    const records = [
+      { recordDateTime: "2026-01-01T10:00:00Z", count: 1 },
+      { recordDateTime: "2026-01-01T11:00:00", count: 2 },
+      { recordDateTime: "2026-02-30T00:00:00Z", count: 3 },
+      { recordDateTime: "Mar 5 2026", count: 4 },
+    ];
+    const element = { hierarchyElementReference: { supply: [{ supplyViewType: "spaceView", supplyQuantity: 10 }], demandTable: [{ demandType: records }] } };
+    expect(availability(element)).toEqual([10, 8, "2026-01-01T11:00:00"]);
+  });
+
+  it("never sends dot-segment ids upstream", async () => {
+    const upstream = new FakeUpstream();
+    const settings = settingsFromEnv(FIXTURES.config);
+    const app = buildApp(settings, { fetch: upstream.fetch });
+    for (const zoneId of [".", ".."]) {
+      const resp = await app.inject({ method: "POST", url: "/permits/verify", payload: { curb_zone_id: zoneId, credential: "ZA-004217" } });
+      expect(resp.statusCode).toBe(404);
+    }
+    expect(upstream.requests).toEqual([]);
+    expect((await app.inject({ method: "GET", url: "/zones/%2E%2E/off-street" })).statusCode).toBe(404);
+    // Fastify's router already resolves the dot segment (route not found); either way no single-zone fetch is made.
+    const collections = ["/curbs/zones", "/curbs/areas", "/curbs/objects", "/curbs/policies"];
+    expect(upstream.requests.filter((r) => r.url.host === "cds.example.org" && !collections.includes(r.url.pathname))).toEqual([]);
+
+    const before = upstream.requests.length;
+    expect(await new ApdsClient(upstream.fetch, settings).rightSpec("..")).toBeNull();
+    expect(upstream.requests.length).toBe(before);
   });
 });

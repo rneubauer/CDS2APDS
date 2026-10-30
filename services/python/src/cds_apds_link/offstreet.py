@@ -1,10 +1,10 @@
 """T2: nearby off-street supply for a curb zone (docs/03 §3.4, profile §2.4)."""
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any
 
 from .geo import haversine_m, point_of, round_half_up
+from .permits import parse_instant
 from .registry import Link
 
 
@@ -18,11 +18,8 @@ def multilingual(value: Any) -> str | None:
     return entries[0]["string"] if entries else None
 
 
-def _instant(value: str) -> datetime:
-    return datetime.fromisoformat(value.replace("Z", "+00:00"))
-
-
 def _latest_demand(element: dict[str, Any]) -> dict[str, Any] | None:
+    """Latest demandType record by recordDateTime, read like any other instant; unreadable times are skipped."""
     ref = element.get("hierarchyElementReference")
     tables = ref.get("demandTable") if isinstance(ref, dict) else None
     records = []
@@ -31,7 +28,7 @@ def _latest_demand(element: dict[str, Any]) -> dict[str, Any] | None:
         for record in rows if isinstance(rows, list) else []:
             if isinstance(record, dict) and isinstance(record.get("recordDateTime"), str):
                 try:
-                    records.append((_instant(record["recordDateTime"]), record))
+                    records.append((parse_instant(record["recordDateTime"]), record))
                 except ValueError:
                     continue
     return max(records, key=lambda pair: pair[0])[1] if records else None

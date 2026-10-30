@@ -51,6 +51,16 @@ function requireList(value: unknown, what: string): JsonObject[] {
   return value;
 }
 
+/**
+ * Percent-encode a caller-supplied id so it stays a single path segment.
+ * Returns null for "." and "..": no encoding keeps them a segment (URL normalisation resolves them against
+ * the parent path), and no upstream object can have them as its id, so callers treat them as not found
+ * without making a request.
+ */
+function segment(value: string): string | null {
+  return value === "." || value === ".." ? null : encodeURIComponent(value);
+}
+
 export class CdsClient {
   private readonly http: Http;
 
@@ -68,7 +78,8 @@ export class CdsClient {
   }
 
   private async single(name: string, id: string): Promise<JsonObject | null> {
-    const body = await this.http.get(`/curbs/${name}/${encodeURIComponent(id)}`, undefined, true);
+    const seg = segment(id);
+    const body = seg === null ? null : await this.http.get(`/curbs/${name}/${seg}`, undefined, true);
     if (body === null) return null;
     return requireObject(requireObject(body, `CDS ${name} response`).data, `CDS ${name} object`);
   }
@@ -121,7 +132,8 @@ export class ApdsClient {
   rightSpecs = () => this.paged("/rights/specs");
 
   async rightSpec(id: string): Promise<JsonObject | null> {
-    const body = await this.http.get(`/rights/specs/${encodeURIComponent(id)}`, undefined, true);
+    const seg = segment(id);
+    const body = seg === null ? null : await this.http.get(`/rights/specs/${seg}`, undefined, true);
     return body === null ? null : requireObject(body, "APDS right specification");
   }
 

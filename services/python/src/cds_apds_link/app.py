@@ -139,6 +139,14 @@ def _split_event(event_type: str) -> tuple[str, str]:
     return event_type, ""
 
 
+def _query(request: Request, name: str) -> str | None:
+    """A query parameter that may be given at most once (a repeat is a 400, as in the TypeScript service)."""
+    values = request.query_params.getlist(name)
+    if len(values) > 1:
+        raise invalid_request(f"{name} must be given once")
+    return values[0] if values else None
+
+
 def _parse_radius(raw: str | None, default: int) -> int:
     if raw is None:
         return default
@@ -233,9 +241,11 @@ def create_app(
         return ok({"links": [l.to_json() for l in reg.links], "issues": [i.to_json() for i in reg.issues], "synced_at": reg.last_sync})
 
     @app.get("/links")
-    async def links(cds_id: str | None = None, apds_id: str | None = None, kind: str | None = None) -> JSONResponse:
+    async def links(request: Request) -> JSONResponse:
+        kind = _query(request, "kind")
         if kind is not None and kind not in LINK_KINDS:
             raise invalid_request(f"kind must be one of {', '.join(LINK_KINDS)}")
+        cds_id, apds_id = _query(request, "cds_id"), _query(request, "apds_id")
         await service.ensure_synced()
         return ok([l.to_json() for l in service.registry.find(cds_id, apds_id, kind)])
 
@@ -246,7 +256,7 @@ def create_app(
 
     @app.get("/zones/{zone_id}/off-street")
     async def off_street(zone_id: str, request: Request) -> JSONResponse:
-        radius = _parse_radius(request.query_params.get("radius_m"), settings.default_radius_m)
+        radius = _parse_radius(_query(request, "radius_m"), settings.default_radius_m)
         return ok(await service.off_street(zone_id, radius))
 
     @app.post("/permits/verify")

@@ -1,6 +1,7 @@
 """Unit tests for behaviour the shared conformance fixtures do not exercise."""
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 
 import httpx
@@ -12,6 +13,7 @@ from cds_apds_link.geo import centroid, point_of, round_half_up
 from cds_apds_link.offstreet import availability, multilingual
 from cds_apds_link.permits import decide, evaluate, mask_credential, parse_instant, programme_active
 from cds_apds_link.registry import ApdsSnapshot, CdsSnapshot, Registry, build_links, parse_apds_reference
+from cds_apds_link.upstream import ApdsClient
 from fake_upstream import CONFORMANCE, FakeUpstream, load_json
 
 AT = datetime(2026, 6, 1, tzinfo=timezone.utc)
@@ -252,3 +254,50 @@ def test_oversized_body_is_rejected() -> None:
         big = {"curb_zone_id": "z", "credential": "x", "pad": "a" * 1_100_000}
         resp = client.post("/permits/verify", json=big)
         assert resp.status_code == 400 and "too large" in resp.json()["error"]["message"]
+
+
+# --- input-validation parity ---------------------------------------------
+
+def test_instants_are_strict_with_millisecond_precision() -> None:
+    assert parse_instant("2026-06-01T12:00:00.123999Z") == datetime(2026, 6, 1, 12, 0, 0, 123000, tzinfo=timezone.utc)
+    assert parse_instant("2026-06-01T14:00:00+02:00") == datetime(2026, 6, 1, 12, tzinfo=timezone.utc)
+    # Both read as 12:00:00.000, so the expiry is not after `at` (the TypeScript service agrees).
+    at = parse_instant("2026-06-01T12:00:00.0001Z")
+    assert evaluate({"id": "a", "expiry": "2026-06-01T12:00:00.0009Z"}, SPEC, at) == "expired"
+    for text in ("2026-02-29T00:00:00Z", "2026-01-01T24:00:00Z", "2026-06-01T12:00:00+05:60",
+                 "0001-01-01T00:00:00+05:00", "9999-12-31T23:00:00-05:00", "٢٠٢٦-01-01"):
+        with pytest.raises(ValueError):
+            parse_instant(text)
+    assert evaluate({"id": "a", "expiry": "2026-02-30T00:00:00Z"}, SPEC, AT) == "expired"
+
+
+def test_demand_record_time_uses_the_strict_instant_parser() -> None:
+    records = [
+        {"recordDateTime": "2026-01-01T10:00:00Z", "count": 1},
+        {"recordDateTime": "2026-01-01T11:00:00", "count": 2},
+        {"recordDateTime": "2026-02-30T00:00:00Z", "count": 3},
+        {"recordDateTime": "Mar 5 2026", "count": 4},
+    ]
+    supply = [{"supplyViewType": "spaceView", "supplyQuantity": 10}]
+    element = {"hierarchyElementReference": {"supply": supply, "demandTable": [{"demandType": records}]}}
+    assert availability(element) == (10, 8, "2026-01-01T11:00:00")
+
+
+def test_dot_segment_ids_never_reach_upstream() -> None:
+    fixtures = load_json(CONFORMANCE / "fixtures.json")
+    upstream = FakeUpstream(fixtures)
+    settings = Settings.from_env(fixtures["config"])
+    with TestClient(create_app(settings, transport=upstream.transport())) as client:
+        for zone_id in (".", ".."):
+            assert client.post("/permits/verify", json={"curb_zone_id": zone_id, "credential": "ZA-004217"}).status_code == 404
+        assert not upstream.requests
+        assert client.get("/zones/%2E%2E/off-street").status_code == 404
+    cds_paths = {r.url.raw_path for r in upstream.requests if r.url.host == "cds.example.org"}
+    assert cds_paths == {b"/curbs/zones", b"/curbs/areas", b"/curbs/objects", b"/curbs/policies"}
+
+    async def right_spec(spec_id: str) -> dict | None:
+        async with httpx.AsyncClient(transport=upstream.transport()) as http:
+            return await ApdsClient(http, settings).right_spec(spec_id)
+
+    before = len(upstream.requests)
+    assert asyncio.run(right_spec("..")) is None and len(upstream.requests) == before
