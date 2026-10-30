@@ -312,3 +312,43 @@ describe("input-validation parity", () => {
     expect(upstream.requests.length).toBe(before);
   });
 });
+
+describe("parity leftovers", () => {
+  const start = { overallStartTime: "2026-01-01T00:00:00Z" };
+
+  it("does not treat Object.prototype names as CDS class names", () => {
+    const cds = { ...emptyCds(), zones: [{ curb_zone_id: "z1" }] };
+    const names = ["constructor", "toString", "__proto__", "hasOwnProperty"];
+    const elements = names.map((className, i) => ({ id: `p${i}`, operatorDefinedReference: { id: "z1", className } }));
+    expect(buildLinks(cds, apdsSnapshot(elements, []))).toEqual({ links: [], issues: [] });
+  });
+
+  it("treats non-string upstream values as absent", () => {
+    for (const validityStatus of [["suspended"], { planned: 1 }, 5, null]) {
+      expect(programmeActive({ validity: { validityStatus, validityTimeSpecification: start } }, AT)).toBe(true);
+    }
+    const url = `${APDS}/places/p1`;
+    expect(parseApdsReference({ name: ["APDS"], reference_url: url })).toBeNull();
+    expect(parseApdsReference({ name: "apdſ", reference_url: url })).toBeNull();
+    expect(parseApdsReference({ name: "APDS", reference_url: [url] })).toEqual(["", ""]);
+    for (const type of [["vehicularAccess"], true, ""]) {
+      const cds = { ...emptyCds(), zones: [{ curb_zone_id: "z1", external_references: [ext(url)] }] };
+      const { links } = buildLinks(cds, apdsSnapshot([{ id: "p1", type }], []));
+      expect(links.map((l) => [l.kind, l.apds.type])).toEqual([["supply", "place"]]);
+    }
+  });
+
+  it("tie-breaks rights without a string id as an empty id", () => {
+    const expiry = "2026-07-01T00:00:00Z";
+    const [numeric, named, nullId, missing] = [{ id: 5, expiry }, { id: "4", expiry }, { id: null, expiry }, { expiry }];
+    expect(decide([[named, "valid"], [numeric, "valid"]])).toEqual(["valid", numeric]);
+    expect(decide([[{ id: "0", expiry }, "expired"], [nullId, "expired"]])).toEqual(["expired", nullId]);
+    expect(decide([[named, "expired"], [missing, "expired"]])).toEqual(["expired", missing]);
+  });
+
+  it("tie-breaks issues on detail", () => {
+    const specRef = [ext(`${APDS}/rights/specs/r1`)];
+    const cds = { ...emptyCds(), zones: [{ curb_zone_id: "x", external_references: specRef }], areas: [{ curb_area_id: "x", external_references: specRef }] };
+    expect(buildLinks(cds, apdsSnapshot([], [])).issues.map((i) => i.cds?.type)).toEqual(["CurbArea", "CurbZone"]);
+  });
+});

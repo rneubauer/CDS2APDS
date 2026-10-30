@@ -82,7 +82,8 @@ function bound(record: JsonObject, key: string): [boolean, number | null] {
 
 export function programmeActive(spec: JsonObject | null | undefined, at: number): boolean {
   const validity = spec?.validity;
-  if (!isObject(validity) || INACTIVE_STATUSES.has(String(validity.validityStatus))) return false;
+  // A non-string status counts as absent (profile §2.5: only "suspended" and "planned" are inactive).
+  if (!isObject(validity) || (isString(validity.validityStatus) && INACTIVE_STATUSES.has(validity.validityStatus))) return false;
   const period = validity.validityTimeSpecification;
   if (!isObject(period)) return false;
   const start = optionalInstant(period.overallStartTime);
@@ -100,13 +101,15 @@ export function evaluate(right: JsonObject, spec: JsonObject | null | undefined,
   return "valid";
 }
 
-/** Latest expiry first (no expiry counts as latest), then id ascending. */
+const idOf = (right: JsonObject): string => (isString(right.id) ? right.id : "");
+
+/** Latest expiry first (no expiry counts as latest), then id ascending; a missing or non-string id sorts as "". */
 function latestFirst(a: JsonObject, b: JsonObject): number {
   const ea = optionalInstant(a.expiry);
   const eb = optionalInstant(b.expiry);
   if (ea === null && eb !== null) return -1;
   if (eb === null && ea !== null) return 1;
-  return (eb ?? 0) - (ea ?? 0) || cmp(String(a.id ?? ""), String(b.id ?? ""));
+  return (eb ?? 0) - (ea ?? 0) || cmp(idOf(a), idOf(b));
 }
 
 /** Pick the overall result and the deciding AssignedRight (docs/03 §3.4 step 6). */

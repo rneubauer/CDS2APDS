@@ -59,8 +59,11 @@ Every response is JSON:
 |---|---|---|
 | 400 | `invalid_request` | Missing or invalid parameters or body, or an unknown webhook event type |
 | 401 | `unauthorized` | Webhook token missing or wrong |
-| 404 | `not_found` | Curb zone does not exist upstream |
+| 404 | `not_found` | Curb zone does not exist upstream, or the route does not exist (unknown path, or a known path with the wrong method) |
+| 500 | `internal_error` | Any unexpected failure. The message is always `internal error` and never includes exception text |
 | 502 | `upstream_error` | CDS or APDS failed, timed out or returned malformed data |
+
+Unknown routes and wrong methods both answer `404 not_found` with the message `route not found`; there is no `405`.
 
 ## 3.3 Registry and sync
 
@@ -87,7 +90,7 @@ The registry is built by **harvesting** both sides:
 **Merging:** declarations with the same `(cds.type, cds.id, apds.id)` merge into one link with
 `status` set to `confirmed` (both sides), `cds_only` or `apds_only`.
 
-**Issues** (sorted by `code`, then `cds.id`, then `apds.id`):
+**Issues** (sorted by `code`, then `cds.id`, then `apds.id`, then `detail`):
 
 | `code` | Meaning |
 |---|---|
@@ -103,6 +106,11 @@ A **link** object: `{ "kind", "status", "cds": { "type", "id" }, "apds": { "type
 `cds.type` is one of `CurbZone | CurbArea | CurbSpace | CurbObject | CurbPolicy` and `apds.type` is the
 HierarchyElement `type` (e.g. `place`, `vehicularAccess`) or `RightSpecification`. When the APDS target
 is missing, `apds.type` is `place` or `RightSpecification`, based on the URL collection.
+
+Upstream fields the service reads as text (`name`, `reference_url`, `className`, `type`,
+`validityStatus`, an AssignedRight's `id`) count as **absent** when they are not strings: no
+`APDS` reference, an unusable URL, no link, `type` `place`, no inactive status, and an empty id when
+ordering rights.
 
 ## 3.4 Endpoints
 
