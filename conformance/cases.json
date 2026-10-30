@@ -210,5 +210,56 @@
                      "body": { "id": "7d41e6b2-8c3f-4a9d-b210-00000000f099" } },
         "expect": { "status": 200, "body": { "data": { "event_type": "PlaceDeleted", "applied": true } } } }
     ]
+  },
+  {
+    "name": "permit at must be a real calendar instant within years 0001-9999 UTC",
+    "steps": [
+      { "request": { "method": "POST", "path": "/permits/verify", "body": { "curb_zone_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003", "credential": "ZA-004217", "at": "2026-02-30T00:00:00Z" } },
+        "expect": { "status": 400, "body": { "success": false, "error": { "code": "invalid_request" } } } },
+      { "request": { "method": "POST", "path": "/permits/verify", "body": { "curb_zone_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003", "credential": "ZA-004217", "at": "2026-04-31T12:00:00Z" } },
+        "expect": { "status": 400, "body": { "success": false, "error": { "code": "invalid_request" } } } },
+      { "request": { "method": "POST", "path": "/permits/verify", "body": { "curb_zone_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003", "credential": "ZA-004217", "at": "2026-01-01T24:00:00Z" } },
+        "expect": { "status": 400, "body": { "success": false, "error": { "code": "invalid_request" } } } },
+      { "request": { "method": "POST", "path": "/permits/verify", "body": { "curb_zone_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003", "credential": "ZA-004217", "at": "2026-01-01T23:59:60Z" } },
+        "expect": { "status": 400, "body": { "success": false, "error": { "code": "invalid_request" } } } },
+      { "request": { "method": "POST", "path": "/permits/verify", "body": { "curb_zone_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003", "credential": "ZA-004217", "at": "2026-06-01T12:00:00+05:60" } },
+        "expect": { "status": 400, "body": { "success": false, "error": { "code": "invalid_request" } } } },
+      { "request": { "method": "POST", "path": "/permits/verify", "body": { "curb_zone_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003", "credential": "ZA-004217", "at": "0000-06-01T00:00:00Z" } },
+        "expect": { "status": 400, "body": { "success": false, "error": { "code": "invalid_request" } } } },
+      { "request": { "method": "POST", "path": "/permits/verify", "body": { "curb_zone_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003", "credential": "ZA-004217", "at": "0001-01-01T00:00:00+05:00" } },
+        "expect": { "status": 400, "body": { "success": false, "error": { "code": "invalid_request" } } } },
+      { "request": { "method": "POST", "path": "/permits/verify", "body": { "curb_zone_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003", "credential": "ZA-004217", "at": "9999-12-31T23:00:00-05:00" } },
+        "expect": { "status": 400, "body": { "success": false, "error": { "code": "invalid_request" } } } },
+      { "request": { "method": "POST", "path": "/permits/verify", "body": { "curb_zone_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003", "credential": "ZA-004217", "at": "2028-02-29T00:00:00Z" } },
+        "expect": { "status": 200, "body": { "success": true, "data": { "at": "2028-02-29T00:00:00Z" } } } },
+      { "request": { "method": "POST", "path": "/permits/verify", "body": { "curb_zone_id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003", "credential": "ZA-004217", "at": "2026-06-01T12:00:00.999999Z" } },
+        "expect": { "status": 200, "body": { "success": true, "data": { "at": "2026-06-01T12:00:00Z" } } } }
+    ]
+  },
+  {
+    "name": "repeated query parameters are rejected",
+    "steps": [
+      { "request": { "method": "GET", "path": "/zones/3f2a9c1e-5b7d-4e8a-9c01-00000000b002/off-street?radius_m=100&radius_m=200" },
+        "expect": { "status": 400, "body": { "success": false, "error": { "code": "invalid_request" } } } },
+      { "request": { "method": "GET", "path": "/links?kind=supply&kind=access" },
+        "expect": { "status": 400, "body": { "success": false, "error": { "code": "invalid_request" } } } },
+      { "request": { "method": "GET", "path": "/links?cds_id=3f2a9c1e-5b7d-4e8a-9c01-00000000b002&cds_id=3f2a9c1e-5b7d-4e8a-9c01-00000000b003" },
+        "expect": { "status": 400, "body": { "success": false, "error": { "code": "invalid_request" } } } },
+      { "request": { "method": "GET", "path": "/links?apds_id=a&apds_id=b" },
+        "expect": { "status": 400, "body": { "success": false, "error": { "code": "invalid_request" } } } }
+    ]
+  },
+  {
+    "name": "dot-segment ids are not found and never reach upstream",
+    "steps": [
+      { "request": { "method": "GET", "path": "/zones/%2E/off-street" },
+        "expect": { "status": 404, "body": { "success": false, "data": null, "error": { "code": "not_found" } } } },
+      { "request": { "method": "GET", "path": "/zones/%2E%2E/off-street" },
+        "expect": { "status": 404, "body": { "success": false, "data": null, "error": { "code": "not_found" } } } },
+      { "request": { "method": "POST", "path": "/permits/verify", "body": { "curb_zone_id": ".", "credential": "ZA-004217" } },
+        "expect": { "status": 404, "body": { "success": false, "data": null, "error": { "code": "not_found" } } } },
+      { "request": { "method": "POST", "path": "/permits/verify", "body": { "curb_zone_id": "..", "credential": "ZA-004217" } },
+        "expect": { "status": 404, "body": { "success": false, "data": null, "error": { "code": "not_found" } } } }
+    ]
   }
 ]

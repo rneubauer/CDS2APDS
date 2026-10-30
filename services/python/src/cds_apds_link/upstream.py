@@ -51,9 +51,14 @@ def _reject_constant(name: str) -> Any:
     raise ValueError(f"non-standard JSON constant {name}")
 
 
-def _segment(value: str) -> str:
-    """Percent-encode a caller-supplied id so it stays a single path segment."""
-    return quote(value, safe="")
+def _segment(value: str) -> str | None:
+    """Percent-encode a caller-supplied id so it stays a single path segment.
+
+    Returns None for "." and "..": no encoding keeps them a segment (URL normalisation resolves them
+    against the parent path), and no upstream object can have them as its id, so callers treat them
+    as not found without making a request.
+    """
+    return None if value in (".", "..") else quote(value, safe="")
 
 
 def _require_list(value: Any, what: str) -> list[dict[str, Any]]:
@@ -83,7 +88,8 @@ class CdsClient:
         return _require_list(data.get(name, []), f"CDS {name} list")
 
     async def _single(self, name: str, object_id: str) -> dict[str, Any] | None:
-        body = await self._http.get(f"/curbs/{name}/{_segment(object_id)}", allow_404=True)
+        segment = _segment(object_id)
+        body = None if segment is None else await self._http.get(f"/curbs/{name}/{segment}", allow_404=True)
         if body is None:
             return None
         return _require_dict(_require_dict(body, f"CDS {name} response").get("data"), f"CDS {name} object")
@@ -146,7 +152,8 @@ class ApdsClient:
         return await self._paged("/rights/specs")
 
     async def right_spec(self, spec_id: str) -> dict[str, Any] | None:
-        body = await self._http.get(f"/rights/specs/{_segment(spec_id)}", allow_404=True)
+        segment = _segment(spec_id)
+        body = None if segment is None else await self._http.get(f"/rights/specs/{segment}", allow_404=True)
         return None if body is None else _require_dict(body, "APDS right specification")
 
     async def assigned_rights(self, spec_ids: list[str], credential: str, credential_types: str) -> list[dict[str, Any]]:

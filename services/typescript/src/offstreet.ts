@@ -1,6 +1,7 @@
 /** T2: nearby off-street supply for a curb zone (docs/03 §3.4, profile §2.4). */
 import { haversineM, pointOf, roundHalfUp, type LatLng } from "./geo.js";
 import { asArray, cmp, isInteger, isNumber, isObject, isString, type JsonObject } from "./json.js";
+import { parseInstant } from "./permits.js";
 import type { Link } from "./registry.js";
 
 export interface AccessPoint {
@@ -30,14 +31,15 @@ export function multilingual(value: unknown): string | null {
   return ((en ?? entries[0])?.string as string | undefined) ?? null;
 }
 
+/** Latest demandType record by recordDateTime, read like any other instant; unreadable times are skipped. */
 function latestDemand(element: JsonObject): JsonObject | null {
   const ref = element.hierarchyElementReference;
   let latest: { at: number; record: JsonObject } | null = null;
   for (const table of asArray(isObject(ref) ? ref.demandTable : undefined)) {
     for (const record of asArray(isObject(table) ? table.demandType : undefined)) {
       if (!isObject(record) || !isString(record.recordDateTime)) continue;
-      const at = Date.parse(record.recordDateTime);
-      if (Number.isNaN(at)) continue;
+      const at = parseInstant(record.recordDateTime);
+      if (at === null) continue;
       if (!latest || at > latest.at) latest = { at, record };
     }
   }

@@ -106,6 +106,8 @@ is missing, `apds.type` is `place` or `RightSpecification`, based on the URL col
 
 ## 3.4 Endpoints
 
+Each query parameter an endpoint defines may be given at most once; a repeated one is `400 invalid_request`.
+
 ### `GET /health`
 `data: { "status": "ok", "links": <count>, "last_sync": <ISO-8601 or null> }`. Never triggers a sync.
 
@@ -138,7 +140,7 @@ Nearby off-street supply for a curb zone (T2). `radius_m` must be an integer fro
 | `distance_m` | haversine distance (R = 6 371 008.8 m) from the origin to `indicativePointLocation[0]` (Point), rounded half-up to an integer; `null` if the place has no point |
 | `spaces_total` | `supply[]` entry with `supplyViewType: spaceView` → `supplyQuantity`; else `characteristics.spacesTotal`; else `null` |
 | `spaces_available` | profile §2.4: `spaces_total − count` of the latest `demandType` record (floored at 0); else `round_half_up(spaces_total × (1 − percentage/100))`; else `null` |
-| `occupancy_time` | `recordDateTime` of the latest `demandType` record, else `null` |
+| `occupancy_time` | `recordDateTime` of the latest `demandType` record, else `null`. "Latest" compares `recordDateTime` read as a timestamp (rules in `POST /permits/verify` step 5); records whose time does not parse are ignored |
 | `open_to_public` | `characteristics.openToPublic`, else `null` |
 | `access_points` | VehicularAccess elements whose `parentId.id` is this place: `{ id, name, access_type, curb_zone_id }`, where `curb_zone_id` comes from their `access` link (or `null`); sorted by `id` |
 | `apds_url` | `{APDS_BASE_URL}/places/{id}` |
@@ -167,7 +169,10 @@ The permit check (T3). The credential goes in the body, never in the URL.
 5. Evaluate each candidate at `at`, checking in this order: `issuanceTime > at` → `not_yet_valid`;
    `expiry ≤ at` → `expired`; the RightSpecification (`GET {APDS}/rights/specs/{id}`) is `suspended` or `planned`, or
    `at` is outside `overallStartTime`/`overallEndTime` → `programme_inactive`; otherwise `valid`.
-   Timestamps must match `YYYY-MM-DD[THH:MM[:SS[.fff]]][Z|±HH:MM]`. A timestamp that is **present but does
+   Timestamps must match `YYYY-MM-DD[THH:MM[:SS[.fff]]][Z|±HH:MM]` (no offset means UTC), name a real calendar
+   date and time (no `02-30`, `24:00` or leap second; offset minutes below 60) and fall within years 0001–9999
+   in UTC. Fractional seconds are truncated to milliseconds before comparing. The same rules apply to `at`,
+   where a violation is `400 invalid_request`. A timestamp that is **present but does
    not match fails its check** (fail closed): an unreadable `expiry` counts as expired, never as "no expiry".
 6. `result` is `valid` if any candidate is valid. Otherwise it's the outcome of the candidate with the latest
    `expiry` (ties broken by `id`), or `not_found` if there are no candidates. `assigned_right` describes the
@@ -203,6 +208,9 @@ If the registry has never synced, the service syncs first and then applies the e
   A `meta.total` that isn't an integer stops paging after the current page.
 - Caller-supplied ids are percent-encoded as a single path segment before they reach an upstream URL, so a
   `curb_zone_id` such as `../admin?x=1` cannot address other upstream paths with the service's credentials.
+  An id that is exactly `.` or `..` cannot be kept a single segment (URL normalisation resolves it), so it is
+  never sent upstream and is treated as if upstream had answered 404: `404 not_found` for a curb zone, and a
+  missing policy or right specification otherwise.
 - Request bodies are limited to 1 MiB (`400 invalid_request` beyond that).
 - Webhook upserts of **new** ids are refused (`400 invalid_request`) once the registry holds 100 000 elements or
   100 000 right specifications. Updates to known ids and deletions are always applied.
