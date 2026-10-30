@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from .jsonutil import as_list
@@ -11,7 +11,9 @@ from .registry import RIGHT_SPECS, apds_references
 
 CREDENTIAL_TYPES = ("permit", "licensePlate")
 INACTIVE_STATUSES = ("suspended", "planned")
-ISO_INSTANT = re.compile(r"^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?)?(Z|[+-]\d{2}:\d{2})?$")
+ISO_INSTANT = re.compile(
+    r"^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?)?(?:Z|([+-])(\d{2}):(\d{2}))?$", re.ASCII
+)
 
 
 @dataclass(frozen=True)
@@ -24,16 +26,27 @@ class Programme:
 
 
 def parse_instant(value: str) -> datetime:
-    """Parse an ISO-8601 instant in the profile's strict form; naive values are UTC. Raises ValueError.
+    """Parse an ISO-8601 instant in the profile's strict form to UTC; naive values are UTC. Raises ValueError.
 
-    The accepted form (ISO_INSTANT) is identical in both implementations, so a timestamp
-    one service can read, the other can too.
+    The accepted form (ISO_INSTANT) and the rules below are identical in both implementations, so a
+    timestamp one service can read, the other can too: the fields must form a real calendar date and
+    time (no Feb 30, 24:00 or leap second), the offset is below 24:00 with minutes below 60, the UTC
+    instant lies in years 0001-9999, and fractional seconds are truncated to milliseconds.
     """
-    text = value.strip()
-    if not ISO_INSTANT.match(text):
+    match = ISO_INSTANT.match(value.strip())
+    if not match:
         raise ValueError("not an ISO-8601 instant")
-    parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
-    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+    year, month, day, hour, minute, second = (int(field or 0) for field in match.groups()[:6])
+    millis = int((match[7] or "").ljust(3, "0")[:3])
+    off_hours, off_minutes = int(match[9] or 0), int(match[10] or 0)
+    if off_minutes > 59:
+        raise ValueError("offset minutes out of range")
+    offset = timedelta(hours=off_hours, minutes=off_minutes) * (-1 if match[8] == "-" else 1)
+    local = datetime(year, month, day, hour, minute, second, millis * 1000, tzinfo=timezone(offset))
+    try:
+        return local.astimezone(timezone.utc)
+    except OverflowError:
+        raise ValueError("instant is outside years 0001-9999 in UTC") from None
 
 
 def format_instant(value: datetime) -> str:

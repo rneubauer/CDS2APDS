@@ -4,7 +4,9 @@ import { RIGHT_SPECS, apdsReferences } from "./registry.js";
 
 export const CREDENTIAL_TYPES = ["permit", "licensePlate"] as const;
 const INACTIVE_STATUSES = new Set(["suspended", "planned"]);
-const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?)?(Z|[+-]\d{2}:\d{2})?$/;
+const ISO_INSTANT = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?)?(?:Z|([+-])(\d{2}):(\d{2}))?$/;
+const MIN_INSTANT = Date.parse("0001-01-01T00:00:00Z");
+const MAX_INSTANT = Date.parse("9999-12-31T23:59:59.999Z");
 
 export type Outcome = "valid" | "expired" | "not_yet_valid" | "programme_inactive";
 
@@ -15,15 +17,28 @@ export interface Programme {
 
 /**
  * Parse an ISO-8601 instant in the profile's strict form to epoch ms; values without an offset are UTC.
- * Returns null if invalid. The accepted form (ISO_INSTANT) is identical in the Python implementation.
+ * Returns null if invalid. The accepted form (ISO_INSTANT) and the rules below are identical in the Python
+ * implementation: the fields must form a real calendar date and time (no Feb 30, 24:00 or leap second), the
+ * offset is below 24:00 with minutes below 60, the UTC instant lies in years 0001-9999, and fractional
+ * seconds are truncated to milliseconds.
  */
 export function parseInstant(value: string): number | null {
-  const text = value.trim();
-  if (!ISO_INSTANT.test(text)) return null;
-  const hasZone = /(Z|[+-]\d{2}:\d{2})$/.test(text);
-  const withTime = text.includes("T") ? text : `${text}T00:00:00`;
-  const ms = Date.parse(hasZone ? withTime : `${withTime}Z`);
-  return Number.isNaN(ms) ? null : ms;
+  const match = ISO_INSTANT.exec(value.trim());
+  if (!match) return null;
+  const field = (i: number): number => Number(match[i] ?? 0);
+  const wanted = [field(1), field(2), field(3), field(4), field(5), field(6)];
+  const [year, month, day, hour, minute, second] = wanted as [number, number, number, number, number, number];
+  const offHours = field(9);
+  const offMinutes = field(10);
+  if (year < 1 || offHours > 23 || offMinutes > 59) return null;
+  const local = new Date(0);
+  local.setUTCFullYear(year, month - 1, day);
+  local.setUTCHours(hour, minute, second, Number((match[7] ?? "").padEnd(3, "0").slice(0, 3)));
+  // Date rolls impossible fields over (Feb 30 becomes Mar 2); reject them instead.
+  const actual = [local.getUTCFullYear(), local.getUTCMonth() + 1, local.getUTCDate(), local.getUTCHours(), local.getUTCMinutes(), local.getUTCSeconds()];
+  if (actual.some((v, i) => v !== wanted[i])) return null;
+  const ms = local.getTime() - (match[8] === "-" ? -1 : 1) * (offHours * 60 + offMinutes) * 60_000;
+  return ms >= MIN_INSTANT && ms <= MAX_INSTANT ? ms : null;
 }
 
 export const formatInstant = (ms: number): string => new Date(Math.floor(ms / 1000) * 1000).toISOString().replace(".000Z", "Z");
