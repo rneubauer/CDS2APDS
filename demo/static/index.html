@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Civic District: linking curb (CDS) and garage (APDS) data</title>
+  <link rel="stylesheet" href="demo.css">
+  <script src="demo.js" defer></script>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap top-inner">
+      <div>
+        <p class="overline">CDS 1.1 &harr; APDS 4.1 link profile &middot; live demo</p>
+        <h1>Civic District: one curb, one garage, two standards</h1>
+        <p class="lede">Curb data stays in CDS, facility data stays in APDS. The link service only connects them where the curb meets the garage. Everything below is a live call to the reference service, running offline on fictional data.</p>
+      </div>
+      <nav class="steps" aria-label="Demo steps">
+        <button type="button" class="step" data-step="t1"><span class="step-n">T1</span> Access</button>
+        <button type="button" class="step" data-step="t2"><span class="step-n">T2</span> Nearby supply</button>
+        <button type="button" class="step" data-step="t3"><span class="step-n">T3</span> Shared permit</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap grid">
+    <section class="card map-card" aria-labelledby="map-h">
+      <div class="card-head">
+        <h2 id="map-h">Civic District map</h2>
+        <p class="hint">Click a curb zone to select it.</p>
+      </div>
+      <div class="map-box">
+        <svg id="map" role="img" aria-label="Map of curb zones, garages and the links between them"></svg>
+      </div>
+      <ul class="legend" aria-label="Legend">
+        <li><span class="sw sw-zone"></span>Curb zone (CDS)</li>
+        <li><span class="sw sw-area"></span>Curb area (CDS)</li>
+        <li><span class="sw sw-place"></span>Place (APDS)</li>
+        <li><span class="sw sw-access"></span>Entrance (APDS)</li>
+        <li><span class="sw sw-l-access"></span>T1 access link</li>
+        <li><span class="sw sw-l-supply"></span>T2 supply link</li>
+        <li><span class="sw sw-l-permit"></span>T3 permit link</li>
+      </ul>
+      <div id="zone-info" class="zone-info" aria-live="polite"></div>
+    </section>
+
+    <section class="card accent-t1" id="t1" aria-labelledby="t1-h">
+      <div class="card-head">
+        <p class="overline">T1 &middot; access</p>
+        <h2 id="t1-h">Which garage entrance sits on this curb?</h2>
+      </div>
+      <p class="muted">Links for the selected zone, from <code>GET /links</code>. Declared in existing fields: CDS <code>external_references</code> and APDS <code>operatorDefinedReference</code>.</p>
+      <div id="t1-body" aria-live="polite"></div>
+      <details class="raw" id="t1-raw"><summary>Raw JSON</summary><pre></pre></details>
+    </section>
+
+    <section class="card accent-t2" id="t2" aria-labelledby="t2-h">
+      <div class="card-head">
+        <p class="overline">T2 &middot; nearby off-street supply</p>
+        <h2 id="t2-h">The curb is full. Where can I park instead?</h2>
+      </div>
+      <div class="row">
+        <label for="radius">Radius</label>
+        <select id="radius">
+          <option value="100">100 m</option>
+          <option value="400" selected>400 m (default)</option>
+          <option value="2000">2000 m</option>
+        </select>
+        <span class="muted small">APDS <code>radius</code> is metres; CDS uses centimetres.</span>
+      </div>
+      <div id="t2-body" aria-live="polite"></div>
+      <details class="raw" id="t2-raw"><summary>Raw JSON</summary><pre></pre></details>
+    </section>
+
+    <section class="card accent-t3" id="t3" aria-labelledby="t3-h">
+      <div class="card-head">
+        <p class="overline">T3 &middot; shared permit</p>
+        <h2 id="t3-h">Is this permit honoured at this curb?</h2>
+      </div>
+      <form id="permit-form" class="form" autocomplete="off">
+        <label for="p-zone">Curb zone</label>
+        <select id="p-zone"></select>
+        <label for="p-cred">Credential</label>
+        <input id="p-cred" name="credential" value="ZA-004217" spellcheck="false" autocapitalize="characters">
+        <label for="p-type">Type</label>
+        <select id="p-type">
+          <option value="">any (permit or plate)</option>
+          <option value="permit">permit</option>
+          <option value="licensePlate">licensePlate</option>
+        </select>
+        <label for="p-at">Check at (UTC)</label>
+        <input id="p-at" placeholder="now, or e.g. 2027-02-01T00:00:00Z" spellcheck="false">
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Verify permit</button>
+        </div>
+      </form>
+      <div class="presets" aria-label="Example credentials">
+        <span class="muted small">Try:</span>
+        <button type="button" class="chip" data-cred="ZA-004217" data-type="" data-at="">ZA-004217 (valid)</button>
+        <button type="button" class="chip" data-cred="ZA-999999" data-type="" data-at="">ZA-999999 (unknown)</button>
+        <button type="button" class="chip" data-cred="EXM1234" data-type="licensePlate" data-at="">Plate EXM1234</button>
+        <button type="button" class="chip" data-cred="ZA-004217" data-type="" data-at="2027-02-01T00:00:00Z">ZA-004217 in Feb 2027</button>
+      </div>
+      <div id="t3-body" aria-live="polite"></div>
+      <details class="raw" id="t3-raw"><summary>Raw JSON</summary><pre></pre></details>
+    </section>
+
+    <section class="card" id="ops" aria-labelledby="ops-h">
+      <div class="card-head">
+        <p class="overline">Registry health</p>
+        <h2 id="ops-h">Links, issues and sync</h2>
+      </div>
+      <div class="row">
+        <button type="button" class="btn" id="resync">Re-sync both sides</button>
+        <span class="muted small" id="health-line"></span>
+      </div>
+      <div id="links-body"></div>
+      <div id="issues-body"></div>
+      <details class="raw" id="health-raw"><summary>Raw JSON: GET /health</summary><pre></pre></details>
+      <details class="raw" id="links-raw"><summary>Raw JSON: GET /links</summary><pre></pre></details>
+      <details class="raw" id="issues-raw"><summary>Raw JSON: GET /issues</summary><pre></pre></details>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap">
+      <p>Proposal v0.1. Fictional data from <code>examples/</code>; upstream CDS and APDS are simulated in memory. No schema changes to either standard.</p>
+      <p id="fatal" class="error" hidden></p>
+    </div>
+  </footer>
+</body>
+</html>
