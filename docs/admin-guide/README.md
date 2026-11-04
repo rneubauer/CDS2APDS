@@ -14,6 +14,7 @@ versions, Python and TypeScript. Pick one; they behave the same and take the sam
 | [Known limits](known-limits.md) | Caps and gaps you should know about before going live |
 | [Backup and restore](backup-restore.md) | Why there is nothing to back up, and what happens on restart |
 | [Upgrade](upgrade.md) | Updating the service and the vendored schemas |
+| [Hosting the demo](demo-hosting.md) | Lab runbook: run the demo for an audience on the tailnet |
 
 Quick facts:
 
