@@ -21,5 +21,6 @@ This repository is a standards proposal with two reference services, so its docs
 | [api/](api/README.md) | Integrators | The link service API, generated from the Python service, with examples |
 | [decisions/](decisions/README.md) | Everyone | Why things are the way they are |
 
-What changed in each release is in [CHANGELOG.md](../CHANGELOG.md). Every change to behaviour, settings, the API
+Known gaps, and the plan to close them, are in [docs-backlog.md](docs-backlog.md). What changed in each release is
+in [CHANGELOG.md](../CHANGELOG.md). Every change to behaviour, settings, the API
 or a screen updates the matching page here in the same PR.
