@@ -43,6 +43,7 @@ standard APDS queries (`/places?latitude&longitude&radius`, `/rights/assigned?cr
 | [`conformance/`](conformance) | Language-neutral test fixtures and cases that every service implementation must pass |
 | [`services/python/`](services/python) | Reference link service in Python (FastAPI) |
 | [`services/typescript/`](services/typescript) | Reference link service in TypeScript (Fastify) |
+| [`demo/`](demo) | One-command offline demo of the three touchpoints (Python service + web page) and a talk track |
 | [`tools/validate_examples.py`](tools/validate_examples.py) | Validates every example against the vendored CDS 1.1 and APDS 4.1 schemas |
 | [`vendor/`](vendor) | Pinned upstream schema copies with their licences |
 
@@ -56,6 +57,9 @@ python tools/validate_examples.py
 # Python service: tests, then run
 cd services/python && pip install -e ".[dev]" && pytest --cov
 CDS_BASE_URL=https://cds.example.org APDS_BASE_URL=https://apds.example.org/v4 python -m cds_apds_link
+
+# Offline demo (from the repo root): open http://127.0.0.1:8742/demo/
+pip install -e services/python && python demo/server.py
 
 # TypeScript service: tests, then run
 cd services/typescript && npm install && npm test && npm run build
