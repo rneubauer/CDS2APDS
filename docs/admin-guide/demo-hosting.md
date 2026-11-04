@@ -1,7 +1,7 @@
 # Hosting the demo on the lab tailnet
 
 A runbook for showing the Civic District demo to an audience on the lab tailnet. For what the demo shows, see
-the [demo user guide](../user-guide/demo.md).
+the demo user guide (`docs/user-guide/demo.md`, added by PR #7).
 
 ## 1. Prerequisites
 
