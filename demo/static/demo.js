@@ -553,6 +553,7 @@
     document.querySelectorAll(".step").forEach((btn) => btn.addEventListener("click", () => {
       const step = btn.dataset.step;
       selectZone(STEP_ZONES[step], step);
+      history.replaceState(null, "", "#" + step);
       const card = $(step);
       card.classList.remove("flash");
       void card.offsetWidth; // restart the highlight animation
@@ -587,9 +588,12 @@
       buildNames();
       replace("p-zone", zones().map((z) => h("option", { value: z.curb_zone_id }, z.name)));
       await refreshRegistry();
-      state.selected = STEP_ZONES.t1;
+      // #t1, #t2 or #t3 opens the page at that step (for bookmarks and the docs screenshots).
+      const hashStep = location.hash.slice(1);
+      const step = Object.hasOwn(STEP_ZONES, hashStep) ? hashStep : "t1";
+      state.selected = STEP_ZONES[step];
       renderMap();
-      selectZone(STEP_ZONES.t1, "t1");
+      selectZone(STEP_ZONES[step], step);
     } catch (err) {
       const fatal = $("fatal");
       fatal.hidden = false;

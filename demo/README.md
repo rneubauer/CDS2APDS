@@ -109,5 +109,8 @@ untouched standards, and a shared conformance suite that the Python and TypeScri
   2026-12-31T23:59:59Z. After that date, type `2026-06-01T12:00:00Z` into "Check at" to show a valid result.
 - The "ZA-004217 in Feb 2027" chip fills "Check at", and that value stays for later checks. Click
   "ZA-004217 (valid)" to clear it again.
+- Open `/demo/#t2` or `/demo/#t3` to start at a step; clicking a step button updates the address too.
+- Step-by-step guide with screenshots: [docs/user-guide/demo.md](../docs/user-guide/demo.md). Regenerate the
+  screenshots with `demo/screenshots.sh` while the demo runs.
 - The map is schematic. The entrance is about a metre from its curb zone, so the T1 link is drawn as a
   ring rather than a line. On a phone, secondary map labels are hidden; the laptop view reads best.
