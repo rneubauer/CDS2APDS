@@ -42,7 +42,7 @@ pip install -e services/python
 - [ ] Open `/demo/#t1`, `/demo/#t2` and `/demo/#t3` and check each panel fills in.
 - [ ] The sample permit `ZA-004217` expires `2026-12-31T23:59:59Z`. After that date, set "Check at" to `2026-06-01T12:00:00Z`.
 - [ ] After using the "Feb 2027" chip, reset the date to the default.
-- [ ] Present from a laptop; the page is not laid out for a phone.
+- [ ] Present from a laptop. The page works on a phone, but the map is small there.
 
 ## 4. Turn it off afterwards
 
