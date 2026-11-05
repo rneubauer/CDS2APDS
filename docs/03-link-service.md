@@ -108,9 +108,13 @@ HierarchyElement `type` (e.g. `place`, `vehicularAccess`) or `RightSpecification
 is missing, `apds.type` is `place` or `RightSpecification`, based on the URL collection.
 
 Upstream fields the service reads as text (`name`, `reference_url`, `className`, `type`,
-`validityStatus`, an AssignedRight's `id`) count as **absent** when they are not strings: no
-`APDS` reference, an unusable URL, no link, `type` `place`, no inactive status, and an empty id when
-ordering rights.
+an AssignedRight's `id`) count as **absent** when they are not strings: no `APDS` reference, an
+unusable URL, no link, `type` `place`, and an empty id when ordering rights.
+
+`validityStatus` is the exception, because treating it as absent would fail open. Missing or `null`
+means active (subject to the time bounds); a present value that is not a string (e.g. `["suspended"]`,
+`5`) makes the programme **inactive**, so a permit check returns `programme_inactive`, in line with
+how unparseable timestamps fail closed.
 
 ## 3.4 Endpoints
 

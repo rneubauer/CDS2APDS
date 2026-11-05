@@ -82,8 +82,10 @@ function bound(record: JsonObject, key: string): [boolean, number | null] {
 
 export function programmeActive(spec: JsonObject | null | undefined, at: number): boolean {
   const validity = spec?.validity;
-  // A non-string status counts as absent (profile §2.5: only "suspended" and "planned" are inactive).
-  if (!isObject(validity) || (isString(validity.validityStatus) && INACTIVE_STATUSES.has(validity.validityStatus))) return false;
+  if (!isObject(validity)) return false;
+  // Absent (missing/null) status is active; a present non-string status fails closed as inactive (profile §2.5).
+  const status = validity.validityStatus;
+  if (status !== undefined && status !== null && (!isString(status) || INACTIVE_STATUSES.has(status))) return false;
   const period = validity.validityTimeSpecification;
   if (!isObject(period)) return false;
   const start = optionalInstant(period.overallStartTime);

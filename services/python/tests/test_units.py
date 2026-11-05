@@ -479,9 +479,15 @@ def test_prototype_names_are_not_cds_class_names() -> None:
     assert build_links(cds, ApdsSnapshot.from_lists(elements, [])) == ([], [])
 
 
+def test_present_non_string_validity_status_is_inactive() -> None:
+    for status in (["suspended"], {"planned": 1}, 5, True):
+        assert not programme_active({"validity": {"validityStatus": status, "validityTimeSpecification": START}}, AT)
+    spec = {"validity": {"validityStatus": ["suspended"], "validityTimeSpecification": START}}
+    assert evaluate({"issuanceTime": "2026-01-01T00:00:00Z"}, spec, AT) == "programme_inactive"
+
+
 def test_non_string_upstream_values_count_as_absent() -> None:
-    for status in (["suspended"], {"planned": 1}, 5, None):
-        assert programme_active({"validity": {"validityStatus": status, "validityTimeSpecification": START}}, AT)
+    assert programme_active({"validity": {"validityStatus": None, "validityTimeSpecification": START}}, AT)
     url = f"{APDS}/places/p1"
     assert parse_apds_reference({"name": ["APDS"], "reference_url": url}) is None
     assert parse_apds_reference({"name": "apdſ", "reference_url": url}) is None  # "ſ".casefold() == "s"

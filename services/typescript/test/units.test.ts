@@ -323,8 +323,17 @@ describe("parity leftovers", () => {
     expect(buildLinks(cds, apdsSnapshot(elements, []))).toEqual({ links: [], issues: [] });
   });
 
+  it("treats a present non-string validityStatus as inactive (fail closed)", () => {
+    for (const validityStatus of [["suspended"], { planned: 1 }, 5, true]) {
+      expect(programmeActive({ validity: { validityStatus, validityTimeSpecification: start } }, AT)).toBe(false);
+    }
+    const right = { issuanceTime: "2026-01-01T00:00:00Z" };
+    const spec = { validity: { validityStatus: ["suspended"], validityTimeSpecification: start } };
+    expect(evaluate(right, spec, AT)).toBe("programme_inactive");
+  });
+
   it("treats non-string upstream values as absent", () => {
-    for (const validityStatus of [["suspended"], { planned: 1 }, 5, null]) {
+    for (const validityStatus of [null, undefined]) {
       expect(programmeActive({ validity: { validityStatus, validityTimeSpecification: start } }, AT)).toBe(true);
     }
     const url = `${APDS}/places/p1`;

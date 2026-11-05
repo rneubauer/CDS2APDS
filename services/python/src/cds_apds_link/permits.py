@@ -117,9 +117,9 @@ def programme_active(spec: dict[str, Any] | None, at: datetime) -> bool:
     validity = spec.get("validity")
     if not isinstance(validity, dict):
         return False
-    # A non-string status counts as absent (profile §2.5: only "suspended" and "planned" are inactive).
+    # Absent (missing/null) status is active; a present non-string status fails closed as inactive (profile §2.5).
     status = validity.get("validityStatus")
-    if isinstance(status, str) and status in INACTIVE_STATUSES:
+    if status is not None and (not isinstance(status, str) or status in INACTIVE_STATUSES):
         return False
     period = validity.get("validityTimeSpecification")
     if not isinstance(period, dict):
