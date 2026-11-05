@@ -54,8 +54,8 @@ class Issue:
     apds: Ref | None
     detail: str
 
-    def sort_key(self) -> tuple[str, str, str]:
-        return (self.code, self.cds.id if self.cds else "", self.apds.id if self.apds else "")
+    def sort_key(self) -> tuple[str, str, str, str]:
+        return (self.code, self.cds.id if self.cds else "", self.apds.id if self.apds else "", self.detail)
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -97,7 +97,9 @@ class ApdsSnapshot:
 
 def parse_apds_reference(ref: Any) -> tuple[str, str] | None:
     """Return (collection, id) for an APDS external reference, None if it is not one, or ("", "") if unusable."""
-    if not isinstance(ref, dict) or str(ref.get("name", "")).casefold() != "apds":
+    # Non-string values count as absent. lower(), not casefold(), matches JS toLowerCase ("apdſ" is not APDS).
+    name = ref.get("name") if isinstance(ref, dict) else None
+    if not isinstance(name, str) or name.lower() != "apds":
         return None
     # Profile §2.2: reference_url MUST be an absolute URL; anything else is unusable.
     path = _http_path(ref.get("reference_url"))
@@ -116,11 +118,19 @@ def parse_apds_reference(ref: Any) -> tuple[str, str] | None:
 
 def _http_path(raw: Any) -> str:
     """Path of an absolute http(s) URL, or "" if the value is not one (urlparse raises on e.g. "http://[x")."""
+    if not isinstance(raw, str):
+        return ""
     try:
-        url = urlparse("" if raw is None else str(raw))
+        url = urlparse(raw)
     except ValueError:
         return ""
     return url.path if url.scheme in ("http", "https") and url.netloc else ""
+
+
+def _element_type(element: dict[str, Any]) -> str:
+    """An element's ``type``; a missing, empty or non-string value counts as "place"."""
+    value = element.get("type")
+    return value if isinstance(value, str) and value else "place"
 
 
 def apds_references(record: dict[str, Any]) -> list[tuple[str, str]]:
@@ -177,7 +187,7 @@ def _cds_permit(cref: Ref, apds_id: str, apds: ApdsSnapshot, merger: _Merger) ->
 
 def _cds_place(cref: Ref, apds_id: str, apds: ApdsSnapshot, merger: _Merger) -> None:
     element = apds.elements.get(apds_id)
-    apds_type = str(element.get("type") or "place") if element else "place"
+    apds_type = _element_type(element) if element else "place"
     aref = Ref(apds_type, apds_id)
     if cref.type == "CurbPolicy":
         merger.issue("invalid_reference", cref, aref, "a CurbPolicy may only reference a RightSpecification")
@@ -202,7 +212,7 @@ def _apds_side(cds: CdsSnapshot, apds: ApdsSnapshot, merger: _Merger) -> None:
             continue
         if not isinstance(ref.get("className"), str) or ref["className"] not in CLASSNAME_TO_CDS:
             continue
-        apds_type = str(element.get("type") or "place")
+        apds_type = _element_type(element)
         aref = Ref(apds_type, element["id"])
         cds_type, cds_id = CLASSNAME_TO_CDS[ref["className"]], ref["id"]
         if (cds_type, cds_id) not in known:

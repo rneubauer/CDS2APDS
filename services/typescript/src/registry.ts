@@ -13,12 +13,13 @@ export const CDS_ID_FIELDS: Record<CdsType, string> = {
   CurbObject: "curb_object_id",
   CurbPolicy: "curb_policy_id",
 };
-const CLASSNAME_TO_CDS: Record<string, CdsType> = {
-  CdsCurbZone: "CurbZone",
-  CdsCurbArea: "CurbArea",
-  CdsCurbSpace: "CurbSpace",
-  CdsCurbObject: "CurbObject",
-};
+// A Map, not a plain object: `"constructor" in {}` is true, and className comes from upstream.
+const CLASSNAME_TO_CDS: ReadonlyMap<string, CdsType> = new Map([
+  ["CdsCurbZone", "CurbZone"],
+  ["CdsCurbArea", "CurbArea"],
+  ["CdsCurbSpace", "CurbSpace"],
+  ["CdsCurbObject", "CurbObject"],
+]);
 
 export const PLACES = "places";
 export const RIGHT_SPECS = "rights/specs";
@@ -73,15 +74,21 @@ function cdsRecords(cds: CdsSnapshot): Array<[CdsType, JsonObject]> {
   ];
 }
 
+/** An element's `type`; a missing, empty or non-string value counts as "place". */
+function elementType(element: JsonObject): string {
+  return isString(element.type) && element.type ? element.type : "place";
+}
+
 export type ParsedRef = readonly [collection: string, id: string];
 
 /** [collection, id] for an APDS external reference; null if not APDS; ["", ""] if unusable. */
 export function parseApdsReference(ref: unknown): ParsedRef | null {
-  if (!isObject(ref) || String(ref.name ?? "").toLowerCase() !== "apds") return null;
+  // Non-string values count as absent, as in the Python service (String(["APDS"]) would be "APDS").
+  if (!isObject(ref) || !isString(ref.name) || ref.name.toLowerCase() !== "apds") return null;
   // Profile §2.2: reference_url MUST be an absolute URL; anything else is unusable.
   let path = "";
   try {
-    const url = new URL(String(ref.reference_url ?? ""));
+    const url = new URL(isString(ref.reference_url) ? ref.reference_url : "");
     path = url.protocol === "http:" || url.protocol === "https:" ? url.pathname : "";
   } catch {
     path = "";
@@ -151,7 +158,7 @@ function cdsPermit(cref: Ref, apdsId: string, apds: ApdsSnapshot, merger: Merger
 
 function cdsPlace(cref: Ref, apdsId: string, apds: ApdsSnapshot, merger: Merger): void {
   const element = apds.elements.get(apdsId);
-  const apdsType = element ? String(element.type || "place") : "place";
+  const apdsType = element ? elementType(element) : "place";
   const aref = { type: apdsType, id: apdsId };
   if (cref.type === "CurbPolicy") {
     merger.issue("invalid_reference", cref, aref, "a CurbPolicy may only reference a RightSpecification");
@@ -186,10 +193,11 @@ function apdsSide(cds: CdsSnapshot, apds: ApdsSnapshot, merger: Merger): void {
   const elements = [...apds.elements.values()].sort((a, b) => cmp(a.id as string, b.id as string));
   for (const element of elements) {
     const ref = element.operatorDefinedReference;
-    if (!isObject(ref) || !isString(ref.className) || !(ref.className in CLASSNAME_TO_CDS) || !isString(ref.id)) continue;
-    const apdsType = String(element.type || "place");
+    if (!isObject(ref) || !isString(ref.id)) continue;
+    const cdsType = isString(ref.className) ? CLASSNAME_TO_CDS.get(ref.className) : undefined;
+    if (!cdsType) continue;
+    const apdsType = elementType(element);
     const aref = { type: apdsType, id: element.id as string };
-    const cdsType = CLASSNAME_TO_CDS[ref.className] as CdsType;
     let cdsId = ref.id;
     if (!known.has(JSON.stringify([cdsType, cdsId]))) {
       const next = cdsType === "CurbZone" ? successor.get(cdsId) : undefined;
