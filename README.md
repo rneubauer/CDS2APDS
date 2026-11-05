@@ -45,7 +45,8 @@ standard APDS queries (`/places?latitude&longitude&radius`, `/rights/assigned?cr
 | [`services/typescript/`](services/typescript) | Reference link service in TypeScript (Fastify) |
 | [`tools/validate_examples.py`](tools/validate_examples.py) | Validates every example against the vendored CDS 1.1 and APDS 4.1 schemas |
 | [`vendor/`](vendor) | Pinned upstream schema copies with their licences |
-| [`docs/decisions/`](docs/decisions) | Design decision records |
+| [`docs/`](docs/README.md) | **Documentation index.** Guides: [`user-guide/`](docs/user-guide/README.md) (publishing and using links), [`admin-guide/`](docs/admin-guide/README.md) (running the link service), [`developer/`](docs/developer/README.md) (architecture and code map), [`api/`](docs/api/README.md) (API reference), [`decisions/`](docs/decisions) (design decisions). All five apply to this repo |
+| [`CHANGELOG.md`](CHANGELOG.md) | What changed in each release |
 | [`AGENTS.md`](AGENTS.md) | Contributor handoff: project rules and the checks every PR must pass |
 
 ## Quick start
