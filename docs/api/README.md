@@ -23,6 +23,23 @@ The script builds the app with dummy settings and makes no network calls. CI (`.
 regenerates the file on every push and pull request and fails if the committed copy differs. If you change a
 route, commit the regenerated file in the same PR.
 
+## Versioning
+
+The API has its own version, `info.version` in `openapi.json`, taken from the `version` passed to `FastAPI(...)` in
+`services/python/src/cds_apds_link/app.py`. Keep `services/typescript/package.json` at the same number.
+
+- While the version is **0.x**, any release may change behaviour. Bump the minor number (0.1 → 0.2) for any change
+  a client could notice: a new or removed endpoint or field, a different status code, or a stricter input rule.
+  Bump the patch number for fixes that make the services match docs/03.
+- From **1.0**, breaking changes need a major bump.
+- List every API change in [CHANGELOG.md](../../CHANGELOG.md) with the version it ships in.
+- The API is registered with the lab architecture project (Umojo-Architecture). Ask it to review any contract
+  change before merge.
+
+The current version is **0.1.0** (the initial commit). The open stack #4–#6 tightens the contract and ships as
+**0.2.0**. The bump goes in whichever PR merges last of #6 and this docs PR, together with the regenerated
+`openapi.json`.
+
 ## What the generated file covers, and what it misses
 
 The Python service reads most inputs by hand (query string, headers, JSON body) so it can return the same
