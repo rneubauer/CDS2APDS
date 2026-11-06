@@ -514,3 +514,16 @@ def test_issues_tie_break_on_detail() -> None:
     cds = CdsSnapshot(zones=[{"curb_zone_id": "x", "external_references": spec_ref}], areas=[{"curb_area_id": "x", "external_references": spec_ref}])
     _, found = build_links(cds, ApdsSnapshot())
     assert [i.cds.type for i in found if i.cds] == ["CurbArea", "CurbZone"]
+
+
+@pytest.mark.parametrize(
+    "bad", ["http:foo", "https:/x", "http:///path", "https://", "ftp://h", "http://:80", "http://", "//h"]
+)
+def test_settings_rejects_malformed_base_url(bad: str) -> None:
+    with pytest.raises(ValueError, match=r"CDS_BASE_URL must be an absolute http\(s\) URL"):
+        Settings.from_env({"CDS_BASE_URL": bad, "APDS_BASE_URL": APDS})
+
+
+def test_settings_base_url_trims_and_keeps_scheme_case() -> None:
+    s = Settings.from_env({"CDS_BASE_URL": "  https://h/v4/ ", "APDS_BASE_URL": "HTTPS://H"})
+    assert (s.cds_base_url, s.apds_base_url) == ("https://h/v4", "HTTPS://H")
