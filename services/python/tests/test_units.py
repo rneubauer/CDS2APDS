@@ -163,6 +163,31 @@ def test_upstream_failures_become_502() -> None:
         assert client.post("/sync").status_code == 502
 
 
+OPTIONAL_PATHS = ["/curbs/objects", "/curbs/spaces"]
+
+
+@pytest.mark.parametrize("path", OPTIONAL_PATHS)
+@pytest.mark.parametrize("mode", ["500", "transport", "bad_json", "404"])
+def test_only_404_means_none_on_optional_cds_endpoints(path: str, mode: str) -> None:
+    fake = FakeUpstream(load_json(CONFORMANCE / "fixtures.json"))
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path != path:
+            return fake.handle(request)
+        if mode == "transport":
+            raise httpx.ConnectError("boom")
+        if mode == "bad_json":
+            return httpx.Response(200, text="{not json")
+        return httpx.Response(int(mode), json={})
+
+    with _client(handler) as client:
+        resp = client.post("/sync")
+        if mode == "404":
+            assert resp.status_code == 200
+        else:
+            assert resp.status_code == 502 and resp.json()["error"]["code"] == "upstream_error"
+
+
 def test_upstream_auth_headers_and_no_credential_leak() -> None:
     fixtures = load_json(CONFORMANCE / "fixtures.json")
     upstream = FakeUpstream(fixtures)
