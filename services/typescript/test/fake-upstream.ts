@@ -42,6 +42,7 @@ export class FakeUpstream {
   readonly zones: Obj[];
   readonly areas: Obj[];
   readonly policies: Obj[];
+  readonly spaces: Obj[];
   readonly elements: Obj[];
   readonly specs: Obj[];
   readonly assigned: Obj[];
@@ -55,6 +56,7 @@ export class FakeUpstream {
     this.zones = load(fixtures.cds.zones);
     this.areas = load(fixtures.cds.areas);
     this.policies = load(fixtures.cds.policies);
+    this.spaces = load(fixtures.cds.spaces ?? []);
     this.elements = load(fixtures.apds.elements);
     this.specs = load(fixtures.apds.right_specs);
     this.assigned = load(fixtures.apds.assigned_rights);
@@ -77,6 +79,7 @@ export class FakeUpstream {
       zones: [this.zones, "curb_zone_id"],
       areas: [this.areas, "curb_area_id"],
       policies: [this.policies, "curb_policy_id"],
+      spaces: [this.spaces, "curb_space_id"],
     };
     const entry = parts[0] === "curbs" && parts[1] ? collections[parts[1]] : undefined;
     if (!entry) return json(404, {});

@@ -70,6 +70,7 @@ class Issue:
 class CdsSnapshot:
     zones: list[dict[str, Any]] = field(default_factory=list)
     areas: list[dict[str, Any]] = field(default_factory=list)
+    spaces: list[dict[str, Any]] = field(default_factory=list)
     objects: list[dict[str, Any]] = field(default_factory=list)
     policies: list[dict[str, Any]] = field(default_factory=list)
 
@@ -77,6 +78,7 @@ class CdsSnapshot:
         return (
             [("CurbZone", z) for z in self.zones]
             + [("CurbArea", a) for a in self.areas]
+            + [("CurbSpace", s) for s in self.spaces]
             + [("CurbObject", o) for o in self.objects]
             + [("CurbPolicy", p) for p in self.policies]
         )

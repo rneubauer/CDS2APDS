@@ -51,6 +51,7 @@ class FakeUpstream:
         self.zones = load(fixtures["cds"]["zones"])
         self.areas = load(fixtures["cds"]["areas"])
         self.policies = load(fixtures["cds"]["policies"])
+        self.spaces = load(fixtures["cds"].get("spaces", []))
         self.elements = load(fixtures["apds"]["elements"])
         self.specs = load(fixtures["apds"]["right_specs"])
         self.assigned = load(fixtures["apds"]["assigned_rights"])
@@ -73,7 +74,7 @@ class FakeUpstream:
         parts = [p for p in path.split("/") if p]
         if len(parts) < 2 or parts[0] != "curbs":
             return _json(404, {})
-        collections = {"zones": (self.zones, "curb_zone_id"), "areas": (self.areas, "curb_area_id"), "policies": (self.policies, "curb_policy_id")}
+        collections = {"zones": (self.zones, "curb_zone_id"), "areas": (self.areas, "curb_area_id"), "policies": (self.policies, "curb_policy_id"), "spaces": (self.spaces, "curb_space_id")}
         if parts[1] not in collections:
             return _json(404, {})
         items, key = collections[parts[1]]

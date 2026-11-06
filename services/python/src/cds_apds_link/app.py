@@ -57,12 +57,12 @@ class LinkService:
 
     async def sync(self) -> None:
         async with self._lock:
-            zones, areas, objects, policies, elements, specs = await asyncio.gather(
-                self.cds.zones(), self.cds.areas(), self.cds.objects(), self.cds.policies(),
+            zones, areas, spaces, objects, policies, elements, specs = await asyncio.gather(
+                self.cds.zones(), self.cds.areas(), self.cds.spaces(), self.cds.objects(), self.cds.policies(),
                 self.apds.elements(), self.apds.right_specs(),
             )
             self.registry.replace(
-                CdsSnapshot(zones, areas, objects, policies),
+                CdsSnapshot(zones, areas, spaces, objects, policies),
                 ApdsSnapshot.from_lists(elements, specs),
                 permits.format_instant(self.clock()),
             )

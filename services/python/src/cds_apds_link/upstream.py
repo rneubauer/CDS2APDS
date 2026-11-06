@@ -103,6 +103,9 @@ class CdsClient:
     async def policies(self) -> list[dict[str, Any]]:
         return await self._collection("policies")
 
+    async def spaces(self) -> list[dict[str, Any]]:
+        return await self._collection("spaces", optional=True)
+
     async def objects(self) -> list[dict[str, Any]]:
         return await self._collection("objects", optional=True)
 

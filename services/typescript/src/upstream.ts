@@ -92,6 +92,7 @@ export class CdsClient {
   zones = () => this.collection("zones");
   areas = () => this.collection("areas");
   policies = () => this.collection("policies");
+  spaces = () => this.collection("spaces", true);
   objects = () => this.collection("objects", true);
   zone = (id: string) => this.single("zones", id);
   policy = (id: string) => this.single("policies", id);

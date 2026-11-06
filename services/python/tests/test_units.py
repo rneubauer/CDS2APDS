@@ -457,7 +457,7 @@ def test_dot_segment_ids_never_reach_upstream() -> None:
         assert not upstream.requests
         assert client.get("/zones/%2E%2E/off-street").status_code == 404
     cds_paths = {r.url.raw_path for r in upstream.requests if r.url.host == "cds.example.org"}
-    assert cds_paths == {b"/curbs/zones", b"/curbs/areas", b"/curbs/objects", b"/curbs/policies"}
+    assert cds_paths == {b"/curbs/zones", b"/curbs/areas", b"/curbs/objects", b"/curbs/spaces", b"/curbs/policies"}
 
     async def right_spec(spec_id: str) -> dict | None:
         async with httpx.AsyncClient(transport=upstream.transport()) as http:

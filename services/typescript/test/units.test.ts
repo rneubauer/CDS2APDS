@@ -304,7 +304,7 @@ describe("input-validation parity", () => {
     expect(upstream.requests).toEqual([]);
     expect((await app.inject({ method: "GET", url: "/zones/%2E%2E/off-street" })).statusCode).toBe(404);
     // Fastify's router already resolves the dot segment (route not found); either way no single-zone fetch is made.
-    const collections = ["/curbs/zones", "/curbs/areas", "/curbs/objects", "/curbs/policies"];
+    const collections = ["/curbs/zones", "/curbs/areas", "/curbs/objects", "/curbs/spaces", "/curbs/policies"];
     expect(upstream.requests.filter((r) => r.url.host === "cds.example.org" && !collections.includes(r.url.pathname))).toEqual([]);
 
     const before = upstream.requests.length;

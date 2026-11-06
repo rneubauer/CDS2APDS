@@ -47,6 +47,7 @@ export interface Issue {
 export interface CdsSnapshot {
   readonly zones: readonly JsonObject[];
   readonly areas: readonly JsonObject[];
+  readonly spaces: readonly JsonObject[];
   readonly objects: readonly JsonObject[];
   readonly policies: readonly JsonObject[];
 }
@@ -55,7 +56,7 @@ export interface ApdsSnapshot {
   readonly rightSpecs: ReadonlyMap<string, JsonObject>;
 }
 
-export const emptyCds = (): CdsSnapshot => ({ zones: [], areas: [], objects: [], policies: [] });
+export const emptyCds = (): CdsSnapshot => ({ zones: [], areas: [], spaces: [], objects: [], policies: [] });
 
 function byId(items: readonly JsonObject[]): Map<string, JsonObject> {
   return new Map(items.filter((i) => isString(i.id)).map((i) => [i.id as string, i]));
@@ -69,6 +70,7 @@ function cdsRecords(cds: CdsSnapshot): Array<[CdsType, JsonObject]> {
   return [
     ...cds.zones.map((z): [CdsType, JsonObject] => ["CurbZone", z]),
     ...cds.areas.map((a): [CdsType, JsonObject] => ["CurbArea", a]),
+    ...cds.spaces.map((s): [CdsType, JsonObject] => ["CurbSpace", s]),
     ...cds.objects.map((o): [CdsType, JsonObject] => ["CurbObject", o]),
     ...cds.policies.map((p): [CdsType, JsonObject] => ["CurbPolicy", p]),
   ];
