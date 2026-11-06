@@ -42,7 +42,7 @@ def _base_url(env: Mapping[str, str], name: str) -> str:
     if not value:
         raise ValueError(f"{name} is required")
     parsed = urlparse(value)
-    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
         raise ValueError(f"{name} must be an absolute http(s) URL")
     return value.rstrip("/")
 

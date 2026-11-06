@@ -26,6 +26,22 @@ describe("config", () => {
   });
 });
 
+describe("config base URL edge cases", () => {
+  it.each(["http:foo", "https:/x", "http:///path", "https://", "ftp://h", "http://:80", "http://", "//h"])(
+    "rejects %s",
+    (bad) => {
+      expect(() => settingsFromEnv({ CDS_BASE_URL: bad, APDS_BASE_URL: APDS })).toThrow(
+        "CDS_BASE_URL must be an absolute http(s) URL",
+      );
+    },
+  );
+
+  it("trims, strips trailing slash and keeps scheme case", () => {
+    const s = settingsFromEnv({ CDS_BASE_URL: "  https://h/v4/ ", APDS_BASE_URL: "HTTPS://H" });
+    expect([s.cdsBaseUrl, s.apdsBaseUrl]).toEqual(["https://h/v4", "HTTPS://H"]);
+  });
+});
+
 describe("references and registry", () => {
   it("parses APDS reference variants", () => {
     expect(parseApdsReference(ext(`${APDS}/places/p1`))).toEqual(["places", "p1"]);

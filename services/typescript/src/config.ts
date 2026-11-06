@@ -20,13 +20,16 @@ type Env = Readonly<Record<string, string | undefined>>;
 function baseUrl(env: Env, name: string): string {
   const value = (env[name] ?? "").trim();
   if (!value) throw new Error(`${name} is required`);
+  const invalid = new Error(`${name} must be an absolute http(s) URL`);
+  // WHATWG URL repairs "http:foo" / "https:/x", so require "//" plus a non-empty authority in the original text.
+  if (!/^https?:\/\/[^/?#]/i.test(value)) throw invalid;
   let parsed: URL;
   try {
     parsed = new URL(value);
   } catch {
-    throw new Error(`${name} must be an absolute http(s) URL`);
+    throw invalid;
   }
-  if (!["http:", "https:"].includes(parsed.protocol)) throw new Error(`${name} must be an absolute http(s) URL`);
+  if (!parsed.hostname) throw invalid;
   return value.replace(/\/+$/, "");
 }
 
