@@ -29,11 +29,11 @@ export class LinkService {
   }
 
   private async harvest(): Promise<void> {
-    const [zones, areas, objects, policies, elements, specs] = await Promise.all([
-      this.cds.zones(), this.cds.areas(), this.cds.objects(), this.cds.policies(),
+    const [zones, areas, spaces, objects, policies, elements, specs] = await Promise.all([
+      this.cds.zones(), this.cds.areas(), this.cds.spaces(), this.cds.objects(), this.cds.policies(),
       this.apds.elements(), this.apds.rightSpecs(),
     ]);
-    this.registry.replace({ zones, areas, objects, policies }, apdsSnapshot(elements, specs), permits.formatInstant(this.clock()));
+    this.registry.replace({ zones, areas, spaces, objects, policies }, apdsSnapshot(elements, specs), permits.formatInstant(this.clock()));
   }
 
   async ensureSynced(): Promise<void> {

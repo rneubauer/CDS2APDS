@@ -16,7 +16,7 @@ APDS API; the registry is a cache that can be rebuilt at any time.
 ```mermaid
 flowchart LR
   subgraph On-street
-    CDS[(CDS Curbs API<br/>/curbs/zones · areas · objects · policies)]
+    CDS[(CDS Curbs API<br/>/curbs/zones · areas · spaces · objects · policies)]
     ENF[Enforcement / curb apps]
   end
   subgraph Off-street
@@ -69,8 +69,9 @@ Unknown routes and wrong methods both answer `404 not_found` with the message `r
 
 The registry is built by **harvesting** both sides:
 
-- **CDS:** `GET /curbs/zones`, `/curbs/areas`, `/curbs/policies` and `/curbs/objects` (a 404 on the
-  optional objects endpoint means "none"). Every `external_references[]` entry whose `name` is `APDS`
+- **CDS:** `GET /curbs/zones`, `/curbs/areas`, `/curbs/policies`, `/curbs/spaces` and `/curbs/objects` (a 404 on an
+  optional endpoint (spaces, objects) means "none"). Any other error from these endpoints (5xx, timeout,
+  malformed body) fails the sync with 502 `upstream_error`. Every `external_references[]` entry whose `name` is `APDS`
   (case-insensitive) is a declared link. The target id is `ids[0]`, or else the last path segment of
   `reference_url`. The target collection is `places` or `rights/specs`, taken from the URL path.
   A `reference_url` that isn't an absolute `http(s)` URL is reported as `invalid_reference`.

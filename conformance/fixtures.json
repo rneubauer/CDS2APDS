@@ -9,6 +9,7 @@
   "cds": {
     "zones": ["cds/curb_zone.garage-driveway.json", "cds/curb_zone.metered.json", "cds/curb_zone.resident-permit.json"],
     "areas": ["cds/curb_area.civic-district.json"],
+    "spaces": ["cds/curb_space.main-st-space-3.json"],
     "policies": ["cds/curb_policy.no-stopping.json", "cds/curb_policy.metered.json", "cds/curb_policy.resident-permit.json"]
   },
   "apds": {
@@ -28,6 +29,7 @@
       "GET /curbs/areas": "200 {\"data\":{\"areas\":[...]}}",
       "GET /curbs/policies": "200 {\"data\":{\"policies\":[...]}}",
       "GET /curbs/policies/{id}": "200 {\"data\":policy} | 404",
+      "GET /curbs/spaces": "200 {\"data\":{\"spaces\":[...]}} (served from fixtures cds.spaces; the endpoint is optional)",
       "GET /curbs/objects": "404 (optional endpoint not implemented)",
       "auth": "none required"
     },

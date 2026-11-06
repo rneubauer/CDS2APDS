@@ -134,6 +134,22 @@ describe("HTTP edge cases", () => {
   const app = (fetchFn?: FetchLike, env: Record<string, string> = {}) =>
     buildApp(settingsFromEnv({ ...FIXTURES.config, ...env }), { fetch: fetchFn ?? new FakeUpstream().fetch });
 
+  it.each(["/curbs/objects", "/curbs/spaces"].flatMap((p) => ["500", "transport", "bad_json", "404"].map((m) => [p, m])))(
+    "only a 404 means none on optional endpoint %s (%s)",
+    async (path, mode) => {
+      const fake = new FakeUpstream();
+      const wrapped: FetchLike = async (url, init) => {
+        if (new URL(url).pathname !== path) return fake.fetch(url, init);
+        if (mode === "transport") throw new TypeError("boom");
+        if (mode === "bad_json") return new Response("{not json", { status: 200 });
+        return new Response("{}", { status: Number(mode) });
+      };
+      const resp = await app(wrapped).inject({ method: "POST", url: "/sync" });
+      if (mode === "404") expect(resp.statusCode).toBe(200);
+      else expect([resp.statusCode, resp.json().error.code]).toEqual([502, "upstream_error"]);
+    },
+  );
+
   it("turns upstream failures into 502", async () => {
     const failing = app(async (url) => {
       if (url.includes("credential")) throw new TypeError("boom");
@@ -304,7 +320,7 @@ describe("input-validation parity", () => {
     expect(upstream.requests).toEqual([]);
     expect((await app.inject({ method: "GET", url: "/zones/%2E%2E/off-street" })).statusCode).toBe(404);
     // Fastify's router already resolves the dot segment (route not found); either way no single-zone fetch is made.
-    const collections = ["/curbs/zones", "/curbs/areas", "/curbs/objects", "/curbs/policies"];
+    const collections = ["/curbs/zones", "/curbs/areas", "/curbs/objects", "/curbs/spaces", "/curbs/policies"];
     expect(upstream.requests.filter((r) => r.url.host === "cds.example.org" && !collections.includes(r.url.pathname))).toEqual([]);
 
     const before = upstream.requests.length;
