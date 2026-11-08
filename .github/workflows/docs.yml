@@ -10,10 +10,15 @@ on:
 permissions:
   contents: read
 
+# The lab runner (app01) takes one job at a time: a newer push cancels the older run.
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   links:
     name: Relative links resolve
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, cds2apds]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -23,7 +28,7 @@ jobs:
 
   api-reference:
     name: API reference is up to date
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, cds2apds]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -43,7 +48,7 @@ jobs:
   docs-changed:
     name: Docs changed with the code
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, cds2apds]
     steps:
       - uses: actions/checkout@v4
         with:

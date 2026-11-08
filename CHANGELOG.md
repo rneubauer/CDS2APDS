@@ -24,6 +24,16 @@ Everything below is in open draft pull requests. **Nothing here has merged yet**
 
 ### Changed
 
+**Link-service API 0.2.0** (pending; #4–#6 together). Changes a client can notice:
+- an unknown route **or a wrong method** returns 404 `not_found` (no 405);
+- any unexpected failure returns 500 `internal_error`;
+- a repeated query parameter returns 400 `invalid_request`;
+- an impossible date (such as `2026-02-30`), or a date outside the years 0001–9999, returns 400 `invalid_request`;
+- the ids `.` and `..` are treated as not found;
+- a permit programme whose `validityStatus` is present but isn't text counts as inactive (fails closed).
+
+Details per PR:
+
 - *Pending, #4:* The Python service always answers with the `{success, data, error}` envelope, including for
   unknown routes (404 `not_found`) and unexpected failures (500 `internal_error`). FastAPI's built-in `/docs`,
   `/redoc` and `/openapi.json` pages are switched off.

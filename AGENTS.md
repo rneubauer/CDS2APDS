@@ -20,7 +20,9 @@ cd services/python && pip install -e ".[dev]" && pytest --cov   # Python 3.11+
 cd services/typescript && npm ci && npm test && npm run build   # Node 20+
 ```
 
-CI (`.github/workflows/ci.yml`) runs the same three steps.
+CI (`.github/workflows/ci.yml`) runs the same three steps on the lab runner `umo-lab-app01-cds2apds`
+(`runs-on: [self-hosted, cds2apds]`; approved by Rick 2026-11-08). The runner takes one job at a time and offers no
+Actions cache or artifact upload, so workflows must not use `actions/cache`, `cache:` options or `upload-artifact`.
 
 ## Rules of the road
 
