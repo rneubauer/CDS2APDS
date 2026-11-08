@@ -34,5 +34,10 @@ Actions cache or artifact upload, so workflows must not use `actions/cache`, `ca
 - **Privacy:** licence plates and permit numbers are personal data. Never log them in clear text or echo
   them in responses (profile §2.5).
 - Record design decisions in `docs/decisions/` (one numbered file each).
+- **Docs are part of every change** (lab documentation standard, 2026-11-03). A PR that changes behaviour, settings,
+  the API or a screen updates the matching page in `docs/user-guide`, `docs/admin-guide`, `docs/developer` or
+  `docs/api`, plus `CHANGELOG.md`, and lists the doc changes in its description. If no docs change, the PR body
+  says why on a line starting `Docs: none`. CI checks this (`.github/workflows/docs.yml`). Never put secrets or
+  real personal data in docs.
 - `docs/cds-apds-link-profile.html` is a standalone rendering of the profile for sharing; keep it in sync
   when the profile text changes.

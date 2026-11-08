@@ -1,0 +1,59 @@
+name: Docs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    # "edited" re-runs the checks when the PR description changes (for the "Docs: none" opt-out).
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+
+# The lab runner (app01) takes one job at a time: a newer push cancels the older run.
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  links:
+    name: Relative links resolve
+    runs-on: [self-hosted, cds2apds]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python tools/check_links.py
+
+  api-reference:
+    name: API reference is up to date
+    runs-on: [self-hosted, cds2apds]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # FastAPI and Pydantic are pinned here so their releases don't change the generated file.
+      # When you bump these pins, regenerate docs/api/openapi.json in the same PR.
+      - run: pip install -e services/python "fastapi==0.162.0" "pydantic==2.14.2"
+      - run: python tools/gen_openapi.py
+      - name: Fail if docs/api/openapi.json is stale
+        run: |
+          git diff --exit-code docs/api/openapi.json || {
+            echo "::error file=docs/api/openapi.json::Out of date. Run 'python tools/gen_openapi.py' and commit the result."
+            exit 1
+          }
+
+  docs-changed:
+    name: Docs changed with the code
+    if: github.event_name == 'pull_request'
+    runs-on: [self-hosted, cds2apds]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python tools/check_docs_changed.py "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
