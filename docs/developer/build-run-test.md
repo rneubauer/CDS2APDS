@@ -106,6 +106,12 @@ Steps:
 Tests that only one implementation needs (for example a Python-only edge case in the HTTP layer) go in
 `test_units.py` or `units.test.ts`. Behaviour a client can see belongs in the shared suite.
 
+## Keeping the HTML page in sync
+
+`docs/cds-apds-link-profile.html` is a standalone copy of the profile for sharing. It is written by hand.
+When you change [docs/02-link-profile.md](../02-link-profile.md), update the HTML page by hand in the same PR.
+Nothing checks this: no CI job compares the two files, so a reviewer has to look.
+
 ## Conventions
 
 - Configuration comes only from environment variables. No secrets in the repo; `.env` is git-ignored.

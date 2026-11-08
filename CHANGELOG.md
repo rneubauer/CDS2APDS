@@ -21,6 +21,9 @@ Everything below is in open draft pull requests. **Nothing here has merged yet**
 - *Pending, #8:* An API reference in `docs/api/`: `openapi.json` generated from the Python service, plus a
   copy-paste `curl` example for every endpoint (tested in CI). This changelog. A docs workflow that checks
   relative links, keeps the API reference current, and asks for docs changes in PRs that change the services.
+- *Pending, docs/folder-readmes:* READMEs for `conformance/` (case and fixture format), `examples/` (what each
+  payload shows) and `tools/` (each script and the CI job that runs it), and a note on keeping the HTML profile
+  page in sync.
 
 ### Changed
 
