@@ -14,7 +14,7 @@ from cds_apds_link.geo import centroid, point_of, round_half_up
 from cds_apds_link import registry as registry_module
 from cds_apds_link.offstreet import availability, linked_place_ids, multilingual
 from cds_apds_link.permits import decide, evaluate, mask_credential, parse_instant, programme_active, programmes
-from cds_apds_link.registry import ApdsSnapshot, CdsSnapshot, Issue, Link, Ref, Registry, build_links, parse_apds_reference
+from cds_apds_link.registry import ApdsSnapshot, CdsSnapshot, Issue, Link, Ref, Registry, build_links, parse_apds_reference, resolve_kind
 from cds_apds_link.upstream import ApdsClient
 from fake_upstream import CONFORMANCE, FakeUpstream, load_json
 
@@ -84,6 +84,49 @@ def test_missing_and_invalid_references_are_reported() -> None:
     assert sorted(i.code for i in issues) == [
         "apds_target_missing", "cds_target_missing", "invalid_reference", "invalid_reference", "invalid_reference",
     ]
+
+
+def test_link_kinds_follow_profile_table() -> None:
+    cds = CdsSnapshot(
+        zones=[{"curb_zone_id": "z1", "external_references": [ext(f"{APDS}/places/va1")]}],
+        areas=[{"curb_area_id": "a1", "external_references": [ext(f"{APDS}/places/va1"), ext(f"{APDS}/places/pl1"), ext(f"{APDS}/places/gone")]}],
+        objects=[
+            {"curb_object_id": "o1", "external_references": [ext(f"{APDS}/places/va1"), ext(f"{APDS}/places/pl1"), ext(f"{APDS}/places/gone")]},
+        ],
+    )
+    apds = ApdsSnapshot.from_lists(
+        [{"id": "va1", "type": "vehicularAccess"}, {"id": "pl1", "type": "place"}], [],
+    )
+    links, issues = build_links(cds, apds)
+    assert sorted((l.kind, l.cds.type, l.apds.id) for l in links) == sorted([
+        ("access", "CurbObject", "va1"), ("access", "CurbObject", "gone"), ("access", "CurbZone", "va1"),
+        ("supply", "CurbArea", "pl1"), ("supply", "CurbArea", "gone"),
+    ])
+    by_code = sorted((i.code, i.cds.type, i.apds.id, i.detail) for i in issues)
+    assert by_code == sorted([
+        ("apds_target_missing", "CurbArea", "gone", "CurbArea a1 references APDS element gone, which does not exist"),
+        ("apds_target_missing", "CurbObject", "gone", "CurbObject o1 references APDS element gone, which does not exist"),
+        ("invalid_reference", "CurbArea", "va1", "CurbArea cannot be the CDS end of an access link (profile §2.1)"),
+        ("invalid_reference", "CurbObject", "pl1", "CurbObject cannot be the CDS end of a supply link (profile §2.1)"),
+    ])
+
+
+def test_curb_space_and_unlisted_element_types_are_not_links() -> None:
+    cds = CdsSnapshot(zones=[{"curb_zone_id": "z1"}])
+    apds = ApdsSnapshot.from_lists(
+        [
+            {"id": "e1", "type": "floor", "operatorDefinedReference": {"id": "z1", "version": 1, "className": "CdsCurbZone"}},
+            {"id": "e2", "type": "bay", "operatorDefinedReference": {"id": "z1", "version": 1, "className": "CdsCurbZone"}},
+            {"id": "e3", "type": "campus", "operatorDefinedReference": {"id": "z1", "version": 1, "className": "CdsCurbZone"}},
+        ],
+        [],
+    )
+    links, issues = build_links(cds, apds)
+    assert [(l.kind, l.apds.id) for l in links] == [("supply", "e3")]
+    assert [(i.code, i.apds.id) for i in issues] == [("invalid_reference", "e1"), ("invalid_reference", "e2")]
+    assert resolve_kind("CurbSpace", "place") == (None, "CurbSpace cannot be the CDS end of a link (profile §2.1)")
+    assert resolve_kind("CurbSpace", "vehicularAccess")[0] is None
+    assert resolve_kind("CurbZone", "vehicularAccess") == ("access", "")
 
 
 # --- geometry and availability -------------------------------------------

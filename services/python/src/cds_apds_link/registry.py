@@ -138,6 +138,39 @@ def apds_references(record: dict[str, Any]) -> list[tuple[str, str]]:
     return [parsed for parsed in (parse_apds_reference(r) for r in refs) if parsed is not None]
 
 
+ACCESS_CDS_TYPES = ("CurbZone", "CurbObject")
+SUPPLY_CDS_TYPES = ("CurbArea", "CurbZone")
+SUPPLY_APDS_TYPES = ("place", "campus")
+
+
+def resolve_kind(cds_type: str, apds_type: str) -> tuple[str | None, str]:
+    """Link kind for a CDS record and an APDS HierarchyElement type (profile §2.1).
+
+    Returns ``(kind, "")``, or ``(None, detail)`` when the pair is not a link. CurbSpace is not
+    in the profile table, so it never forms a link.
+    """
+    if cds_type == "CurbSpace":
+        return None, "CurbSpace cannot be the CDS end of a link (profile §2.1)"
+    if apds_type == "vehicularAccess":
+        kind, allowed = "access", ACCESS_CDS_TYPES
+    elif apds_type in SUPPLY_APDS_TYPES:
+        kind, allowed = "supply", SUPPLY_CDS_TYPES
+    else:
+        return None, f"APDS element type {apds_type} cannot be the APDS end of a link (profile §2.1)"
+    if cds_type not in allowed:
+        article = "an" if kind == "access" else "a"
+        return None, f"{cds_type} cannot be the CDS end of {article} {kind} link (profile §2.1)"
+    return kind, ""
+
+
+def _add_resolved(cref: Ref, aref: Ref, side: str, merger: "_Merger") -> None:
+    kind, detail = resolve_kind(cref.type, aref.type)
+    if kind is None:
+        merger.issue("invalid_reference", cref, aref, detail)
+    else:
+        merger.add(kind, cref, aref, side)
+
+
 class _Merger:
     def __init__(self) -> None:
         self.entries: dict[tuple[str, str, str], dict[str, Any]] = {}
@@ -187,14 +220,21 @@ def _cds_permit(cref: Ref, apds_id: str, apds: ApdsSnapshot, merger: _Merger) ->
 
 def _cds_place(cref: Ref, apds_id: str, apds: ApdsSnapshot, merger: _Merger) -> None:
     element = apds.elements.get(apds_id)
-    apds_type = _element_type(element) if element else "place"
-    aref = Ref(apds_type, apds_id)
     if cref.type == "CurbPolicy":
+        aref = Ref(_element_type(element) if element else "place", apds_id)
         merger.issue("invalid_reference", cref, aref, "a CurbPolicy may only reference a RightSpecification")
         return
-    if element is None:
-        merger.issue("apds_target_missing", cref, aref, f"{cref.type} {cref.id} references APDS element {apds_id}, which does not exist")
-    merger.add("access" if apds_type == "vehicularAccess" else "supply", cref, aref, "cds")
+    if element is not None:
+        _add_resolved(cref, Ref(_element_type(element), apds_id), "cds", merger)
+        return
+    # The target is missing, so its type is unknown: a CurbObject can only be an access end, others default to "place".
+    aref = Ref("place", apds_id)
+    kind, detail = ("access", "") if cref.type == "CurbObject" else resolve_kind(cref.type, "place")
+    if kind is None:
+        merger.issue("invalid_reference", cref, aref, detail)
+        return
+    merger.issue("apds_target_missing", cref, aref, f"{cref.type} {cref.id} references APDS element {apds_id}, which does not exist")
+    merger.add(kind, cref, aref, "cds")
 
 
 def _apds_side(cds: CdsSnapshot, apds: ApdsSnapshot, merger: _Merger) -> None:
@@ -222,7 +262,7 @@ def _apds_side(cds: CdsSnapshot, apds: ApdsSnapshot, merger: _Merger) -> None:
             else:
                 merger.issue("cds_target_missing", Ref(cds_type, cds_id), aref, f"APDS element {element['id']} references {cds_type} {cds_id}, which does not exist")
                 continue
-        merger.add("access" if apds_type == "vehicularAccess" else "supply", Ref(cds_type, cds_id), aref, "apds")
+        _add_resolved(Ref(cds_type, cds_id), aref, "apds", merger)
 
 
 def build_links(cds: CdsSnapshot, apds: ApdsSnapshot) -> tuple[list[Link], list[Issue]]:

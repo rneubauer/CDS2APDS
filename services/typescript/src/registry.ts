@@ -115,6 +115,39 @@ export function apdsReferences(record: JsonObject): ParsedRef[] {
     .filter((r): r is ParsedRef => r !== null);
 }
 
+const ACCESS_CDS_TYPES: readonly string[] = ["CurbZone", "CurbObject"];
+const SUPPLY_CDS_TYPES: readonly string[] = ["CurbArea", "CurbZone"];
+const SUPPLY_APDS_TYPES: readonly string[] = ["place", "campus"];
+
+/**
+ * Link kind for a CDS record and an APDS HierarchyElement type (profile §2.1). Returns `kind`, or `detail`
+ * when the pair is not a link. CurbSpace is not in the profile table, so it never forms a link.
+ */
+export function resolveKind(cdsType: string, apdsType: string): { kind: "access" | "supply"; detail?: undefined } | { kind?: undefined; detail: string } {
+  if (cdsType === "CurbSpace") return { detail: "CurbSpace cannot be the CDS end of a link (profile §2.1)" };
+  let kind: "access" | "supply";
+  let allowed: readonly string[];
+  if (apdsType === "vehicularAccess") {
+    kind = "access";
+    allowed = ACCESS_CDS_TYPES;
+  } else if (SUPPLY_APDS_TYPES.includes(apdsType)) {
+    kind = "supply";
+    allowed = SUPPLY_CDS_TYPES;
+  } else {
+    return { detail: `APDS element type ${apdsType} cannot be the APDS end of a link (profile §2.1)` };
+  }
+  if (!allowed.includes(cdsType)) {
+    return { detail: `${cdsType} cannot be the CDS end of ${kind === "access" ? "an" : "a"} ${kind} link (profile §2.1)` };
+  }
+  return { kind };
+}
+
+function addResolved(cref: Ref, aref: Ref, side: "cds" | "apds", merger: Merger): void {
+  const { kind, detail } = resolveKind(cref.type, aref.type);
+  if (kind === undefined) merger.issue("invalid_reference", cref, aref, detail);
+  else merger.add(kind, cref, aref, side);
+}
+
 class Merger {
   private readonly entries = new Map<string, { kind: LinkKind; cds: Ref; apds: Ref; sides: Set<string> }>();
   private readonly issues = new Map<string, Issue>();
@@ -158,16 +191,23 @@ function cdsPermit(cref: Ref, apdsId: string, apds: ApdsSnapshot, merger: Merger
 
 function cdsPlace(cref: Ref, apdsId: string, apds: ApdsSnapshot, merger: Merger): void {
   const element = apds.elements.get(apdsId);
-  const apdsType = element ? elementType(element) : "place";
-  const aref = { type: apdsType, id: apdsId };
   if (cref.type === "CurbPolicy") {
-    merger.issue("invalid_reference", cref, aref, "a CurbPolicy may only reference a RightSpecification");
+    merger.issue("invalid_reference", cref, { type: element ? elementType(element) : "place", id: apdsId }, "a CurbPolicy may only reference a RightSpecification");
     return;
   }
-  if (!element) {
-    merger.issue("apds_target_missing", cref, aref, `${cref.type} ${cref.id} references APDS element ${apdsId}, which does not exist`);
+  if (element) {
+    addResolved(cref, { type: elementType(element), id: apdsId }, "cds", merger);
+    return;
   }
-  merger.add(apdsType === "vehicularAccess" ? "access" : "supply", cref, aref, "cds");
+  // The target is missing, so its type is unknown: a CurbObject can only be an access end, others default to "place".
+  const aref = { type: "place", id: apdsId };
+  const { kind, detail } = cref.type === "CurbObject" ? { kind: "access" as const, detail: undefined } : resolveKind(cref.type, "place");
+  if (kind === undefined) {
+    merger.issue("invalid_reference", cref, aref, detail);
+    return;
+  }
+  merger.issue("apds_target_missing", cref, aref, `${cref.type} ${cref.id} references APDS element ${apdsId}, which does not exist`);
+  merger.add(kind, cref, aref, "cds");
 }
 
 function cdsSide(cds: CdsSnapshot, apds: ApdsSnapshot, merger: Merger): void {
@@ -209,7 +249,7 @@ function apdsSide(cds: CdsSnapshot, apds: ApdsSnapshot, merger: Merger): void {
         continue;
       }
     }
-    merger.add(apdsType === "vehicularAccess" ? "access" : "supply", { type: cdsType, id: cdsId }, aref, "apds");
+    addResolved({ type: cdsType, id: cdsId }, aref, "apds", merger);
   }
 }
 
