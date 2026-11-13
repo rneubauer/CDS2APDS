@@ -78,14 +78,25 @@ The registry is built by **harvesting** both sides:
   items are read. Every HierarchyElement whose `operatorDefinedReference.className` is one of
   `CdsCurbZone | CdsCurbArea | CdsCurbSpace | CdsCurbObject` is a declared link.
 
-**Kind resolution** (profile §2.2):
+**Kind resolution** (profile §2.1 and §2.2). Only the pairs in the profile's link model form a link:
 
 | CDS end | APDS end | Kind |
 |---|---|---|
 | CurbPolicy | RightSpecification (`rights/specs`) | `permit` |
-| CurbZone, CurbArea, CurbSpace or CurbObject | HierarchyElement with `type` `vehicularAccess` | `access` |
-| CurbZone, CurbArea, CurbSpace or CurbObject | HierarchyElement of any other type | `supply` |
-| anything else (e.g. a policy pointing at `places`) | | ignored, reported as `invalid_reference` |
+| CurbZone or CurbObject | HierarchyElement with `type` `vehicularAccess` | `access` |
+| CurbArea or CurbZone | HierarchyElement with `type` `place` or `campus` | `supply` |
+| anything else | | not a link: ignored and reported as `invalid_reference` |
+
+"Anything else" includes a CurbArea pointing at a `vehicularAccess` element, a CurbObject pointing at a
+`place`, a HierarchyElement of another `type` (e.g. `floor`, `bay`), a policy pointing at `places`, and
+any **CurbSpace**: the profile does not list CurbSpace as a link end, so it never forms a link, in either
+direction. The `detail` names the pair, e.g. `CurbArea cannot be the CDS end of an access link (profile §2.1)`.
+When a CDS reference points at an APDS element that does not exist, its type is unknown: a CurbObject is
+kept as an `access` link, a CurbArea or CurbZone as `supply`, both with `apds_target_missing`.
+
+**Behaviour change:** earlier builds accepted any of CurbZone, CurbArea, CurbSpace or CurbObject with
+`vehicularAccess` as `access`, and with any other element type as `supply`. Those pairs are now
+`invalid_reference`.
 
 **Merging:** declarations with the same `(cds.type, cds.id, apds.id)` merge into one link with
 `status` set to `confirmed` (both sides), `cds_only` or `apds_only`.

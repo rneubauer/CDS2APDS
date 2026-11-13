@@ -291,5 +291,85 @@
       { "request": { "method": "POST", "path": "/permits/verify", "body": { "curb_zone_id": "..", "credential": "ZA-004217" } },
         "expect": { "status": 404, "body": { "success": false, "data": null, "error": { "code": "not_found" } } } }
     ]
+  },
+  {
+    "name": "a CurbArea cannot be the CDS end of an access link",
+    "steps": [
+      { "request": { "method": "POST", "path": "/webhooks/apds",
+                     "headers": { "X-APDS-Event-Type": "PlaceCreated", "X-Link-Webhook-Token": "conformance-token" },
+                     "body": { "id": "7d41e6b2-8c3f-4a9d-b210-0000000f0001", "version": 1, "type": "vehicularAccess",
+                               "operatorDefinedReference": { "id": "3f2a9c1e-5b7d-4e8a-9c01-00000000a001", "version": 1, "className": "CdsCurbArea" } } },
+        "expect": { "status": 200, "body": { "success": true, "data": { "event_type": "PlaceCreated", "applied": true } } } },
+      { "request": { "method": "GET", "path": "/links?apds_id=7d41e6b2-8c3f-4a9d-b210-0000000f0001" },
+        "expect": { "status": 200, "body": { "success": true, "data": [] } } },
+      { "request": { "method": "GET", "path": "/issues" },
+        "expect": { "status": 200, "body": { "success": true, "data": [
+          { "code": "invalid_reference", "cds": { "type": "CurbArea", "id": "3f2a9c1e-5b7d-4e8a-9c01-00000000a001" }, "apds": { "type": "vehicularAccess", "id": "7d41e6b2-8c3f-4a9d-b210-0000000f0001" }, "detail": "CurbArea cannot be the CDS end of an access link (profile §2.1)" }
+        ] } } }
+    ]
+  },
+  {
+    "name": "a CurbZone cannot reach an element type other than vehicularAccess, place or campus",
+    "steps": [
+      { "request": { "method": "POST", "path": "/webhooks/apds",
+                     "headers": { "X-APDS-Event-Type": "PlaceCreated", "X-Link-Webhook-Token": "conformance-token" },
+                     "body": { "id": "7d41e6b2-8c3f-4a9d-b210-0000000f0002", "version": 1, "type": "floor",
+                               "operatorDefinedReference": { "id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003", "version": 1, "className": "CdsCurbZone" } } },
+        "expect": { "status": 200, "body": { "success": true, "data": { "event_type": "PlaceCreated", "applied": true } } } },
+      { "request": { "method": "GET", "path": "/links?apds_id=7d41e6b2-8c3f-4a9d-b210-0000000f0002" },
+        "expect": { "status": 200, "body": { "success": true, "data": [] } } },
+      { "request": { "method": "GET", "path": "/issues" },
+        "expect": { "status": 200, "body": { "success": true, "data": [
+          { "code": "invalid_reference", "cds": { "type": "CurbZone", "id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b003" }, "apds": { "type": "floor", "id": "7d41e6b2-8c3f-4a9d-b210-0000000f0002" }, "detail": "APDS element type floor cannot be the APDS end of a link (profile §2.1)" }
+        ] } } }
+    ]
+  },
+  {
+    "name": "a CurbArea may supply a place",
+    "steps": [
+      { "request": { "method": "POST", "path": "/webhooks/apds",
+                     "headers": { "X-APDS-Event-Type": "PlaceCreated", "X-Link-Webhook-Token": "conformance-token" },
+                     "body": { "id": "7d41e6b2-8c3f-4a9d-b210-0000000f0004", "version": 1, "type": "place",
+                               "operatorDefinedReference": { "id": "3f2a9c1e-5b7d-4e8a-9c01-00000000a001", "version": 1, "className": "CdsCurbArea" } } },
+        "expect": { "status": 200, "body": { "success": true, "data": { "event_type": "PlaceCreated", "applied": true } } } },
+      { "request": { "method": "GET", "path": "/links?apds_id=7d41e6b2-8c3f-4a9d-b210-0000000f0004" },
+        "expect": { "status": 200, "body": { "success": true, "data": [
+          { "kind": "supply", "status": "apds_only", "cds": { "type": "CurbArea", "id": "3f2a9c1e-5b7d-4e8a-9c01-00000000a001" }, "apds": { "type": "place", "id": "7d41e6b2-8c3f-4a9d-b210-0000000f0004" } }
+        ] } } },
+      { "request": { "method": "GET", "path": "/issues" },
+        "expect": { "status": 200, "body": { "success": true, "data": [] } } }
+    ]
+  },
+  {
+    "name": "a CurbArea may supply a campus",
+    "steps": [
+      { "request": { "method": "POST", "path": "/webhooks/apds",
+                     "headers": { "X-APDS-Event-Type": "PlaceCreated", "X-Link-Webhook-Token": "conformance-token" },
+                     "body": { "id": "7d41e6b2-8c3f-4a9d-b210-0000000f0005", "version": 1, "type": "campus",
+                               "operatorDefinedReference": { "id": "3f2a9c1e-5b7d-4e8a-9c01-00000000a001", "version": 1, "className": "CdsCurbArea" } } },
+        "expect": { "status": 200, "body": { "success": true, "data": { "event_type": "PlaceCreated", "applied": true } } } },
+      { "request": { "method": "GET", "path": "/links?apds_id=7d41e6b2-8c3f-4a9d-b210-0000000f0005" },
+        "expect": { "status": 200, "body": { "success": true, "data": [
+          { "kind": "supply", "status": "apds_only", "cds": { "type": "CurbArea", "id": "3f2a9c1e-5b7d-4e8a-9c01-00000000a001" }, "apds": { "type": "campus", "id": "7d41e6b2-8c3f-4a9d-b210-0000000f0005" } }
+        ] } } },
+      { "request": { "method": "GET", "path": "/issues" },
+        "expect": { "status": 200, "body": { "success": true, "data": [] } } }
+    ]
+  },
+  {
+    "name": "a CurbZone may be an access link end",
+    "steps": [
+      { "request": { "method": "POST", "path": "/webhooks/apds",
+                     "headers": { "X-APDS-Event-Type": "PlaceCreated", "X-Link-Webhook-Token": "conformance-token" },
+                     "body": { "id": "7d41e6b2-8c3f-4a9d-b210-0000000f0006", "version": 1, "type": "vehicularAccess",
+                               "operatorDefinedReference": { "id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b001", "version": 1, "className": "CdsCurbZone" } } },
+        "expect": { "status": 200, "body": { "success": true, "data": { "event_type": "PlaceCreated", "applied": true } } } },
+      { "request": { "method": "GET", "path": "/links?apds_id=7d41e6b2-8c3f-4a9d-b210-0000000f0006" },
+        "expect": { "status": 200, "body": { "success": true, "data": [
+          { "kind": "access", "status": "apds_only", "cds": { "type": "CurbZone", "id": "3f2a9c1e-5b7d-4e8a-9c01-00000000b001" }, "apds": { "type": "vehicularAccess", "id": "7d41e6b2-8c3f-4a9d-b210-0000000f0006" } }
+        ] } } },
+      { "request": { "method": "GET", "path": "/issues" },
+        "expect": { "status": 200, "body": { "success": true, "data": [] } } }
+    ]
   }
 ]

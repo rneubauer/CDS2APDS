@@ -44,7 +44,9 @@ to the CDS object:
 
 The link kind is not written anywhere. Consumers derive it from the two ends: a Curb Policy
 pointing at `/rights/specs/` is `permit`; anything pointing at a `vehicularAccess` element is
-`access`; anything pointing at a `place` or `campus` is `supply`.
+`access`; anything pointing at a `place` or `campus` is `supply`. A pair outside the §2.1 table (for example a Curb Area pointing at a `vehicularAccess` element, or any
+element `type` other than `vehicularAccess`, `place` or `campus`) is not a link. Curb Space is not a link end in
+this profile version, so a reference to or from one is not a link either.
 
 `external_references` does not change a Curb Zone's identity, so adding, changing or removing a link
 **MUST NOT** trigger a new `curb_zone_id` (CDS 1.1 already states this).

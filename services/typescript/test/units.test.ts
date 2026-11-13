@@ -5,7 +5,7 @@ import { settingsFromEnv } from "../src/config.js";
 import { centroid, pointOf, roundHalfUp } from "../src/geo.js";
 import { availability, multilingual } from "../src/offstreet.js";
 import { decide, evaluate, maskCredential, parseInstant, programmeActive } from "../src/permits.js";
-import { apdsSnapshot, buildLinks, emptyCds, parseApdsReference, Registry } from "../src/registry.js";
+import { apdsSnapshot, buildLinks, emptyCds, parseApdsReference, Registry, resolveKind } from "../src/registry.js";
 import { ApdsClient, type FetchLike } from "../src/upstream.js";
 import { FIXTURES, FakeUpstream } from "./fake-upstream.js";
 
@@ -84,6 +84,43 @@ describe("references and registry", () => {
     expect(issues.map((i) => i.code).sort()).toEqual([
       "apds_target_missing", "cds_target_missing", "invalid_reference", "invalid_reference", "invalid_reference",
     ]);
+  });
+});
+
+describe("link kinds follow the profile table", () => {
+  const ref = (url: string) => [{ name: "APDS", reference_url: url }];
+  const APDS_URL = "https://apds.example.org/v4";
+
+  it("accepts only the profile pairs and reports the rest", () => {
+    const refs = ["va1", "pl1", "gone"].map((id) => ({ name: "APDS", reference_url: `${APDS_URL}/places/${id}` }));
+    const cds = {
+      ...emptyCds(),
+      zones: [{ curb_zone_id: "z1", external_references: ref(`${APDS_URL}/places/va1`) }],
+      areas: [{ curb_area_id: "a1", external_references: refs }],
+      objects: [{ curb_object_id: "o1", external_references: refs }],
+    };
+    const apds = apdsSnapshot([{ id: "va1", type: "vehicularAccess" }, { id: "pl1", type: "place" }], []);
+    const { links, issues } = buildLinks(cds, apds);
+    expect(links.map((l) => [l.kind, l.cds.type, l.apds.id].join("|")).sort()).toEqual(
+      ["access|CurbObject|gone", "access|CurbObject|va1", "access|CurbZone|va1", "supply|CurbArea|gone", "supply|CurbArea|pl1"],
+    );
+    expect(issues.map((i) => [i.code, i.cds?.type, i.apds?.id, i.detail].join("|")).sort()).toEqual([
+      "apds_target_missing|CurbArea|gone|CurbArea a1 references APDS element gone, which does not exist",
+      "apds_target_missing|CurbObject|gone|CurbObject o1 references APDS element gone, which does not exist",
+      "invalid_reference|CurbArea|va1|CurbArea cannot be the CDS end of an access link (profile §2.1)",
+      "invalid_reference|CurbObject|pl1|CurbObject cannot be the CDS end of a supply link (profile §2.1)",
+    ]);
+  });
+
+  it("treats CurbSpace and unlisted element types as not links", () => {
+    const odd = (id: string, type: string) => ({ id, type, operatorDefinedReference: { id: "z1", version: 1, className: "CdsCurbZone" } });
+    const cds = { ...emptyCds(), zones: [{ curb_zone_id: "z1" }] };
+    const { links, issues } = buildLinks(cds, apdsSnapshot([odd("e1", "floor"), odd("e2", "bay"), odd("e3", "campus")], []));
+    expect(links.map((l) => [l.kind, l.apds.id])).toEqual([["supply", "e3"]]);
+    expect(issues.map((i) => [i.code, i.apds?.id])).toEqual([["invalid_reference", "e1"], ["invalid_reference", "e2"]]);
+    expect(resolveKind("CurbSpace", "place")).toEqual({ detail: "CurbSpace cannot be the CDS end of a link (profile §2.1)" });
+    expect(resolveKind("CurbSpace", "vehicularAccess").kind).toBeUndefined();
+    expect(resolveKind("CurbZone", "vehicularAccess")).toEqual({ kind: "access" });
   });
 });
 
