@@ -215,6 +215,36 @@ def test_webhook_right_specification_events() -> None:
         assert client.get("/issues").json()["data"] == []
 
 
+def test_settings_webhook_insecure_flag() -> None:
+    base = {"CDS_BASE_URL": "https://c", "APDS_BASE_URL": APDS}
+    assert Settings.from_env(base).webhook_insecure is False
+    assert Settings.from_env({**base, "LINK_WEBHOOK_INSECURE": "false"}).webhook_insecure is False
+    assert Settings.from_env({**base, "LINK_WEBHOOK_INSECURE": "TRUE"}).webhook_insecure is True
+    assert Settings.from_env({**base, "LINK_WEBHOOK_INSECURE": "1"}).webhook_insecure is True
+    with pytest.raises(ValueError, match="LINK_WEBHOOK_INSECURE must be one of true, false, 1, 0"):
+        Settings.from_env({**base, "LINK_WEBHOOK_INSECURE": "yes"})
+
+
+def test_webhook_modes(caplog: pytest.LogCaptureFixture) -> None:
+    hdrs = {"X-APDS-Event-Type": "RateUpdated"}
+    # token set: header must match
+    with _client() as client:
+        assert client.post("/webhooks/apds", json={"id": "s"}, headers=hdrs).status_code == 401
+        ok = client.post("/webhooks/apds", json={"id": "s"}, headers={**hdrs, "X-Link-Webhook-Token": "conformance-token"})
+        assert ok.status_code == 200
+    # no token, not insecure: fail closed, reads still work
+    with _client(LINK_WEBHOOK_TOKEN="") as client:
+        r = client.post("/webhooks/apds", json={"id": "s"}, headers=hdrs)
+        assert r.status_code == 401 and r.json()["error"]["code"] == "unauthorized"
+        assert "disabled until LINK_WEBHOOK_TOKEN is set" in r.json()["error"]["message"]
+        assert client.get("/health").status_code != 500
+    # no token, insecure: accepted, one start-up warning
+    with caplog.at_level("WARNING", logger="cds_apds_link"):
+        with _client(LINK_WEBHOOK_TOKEN="", LINK_WEBHOOK_INSECURE="true") as client:
+            assert client.post("/webhooks/apds", json={"id": "s"}, headers=hdrs).status_code == 200
+    assert len([m for m in caplog.messages if "unauthenticated" in m]) == 1
+
+
 def test_webhook_without_token_configured_and_zone_with_bad_geometry() -> None:
     fake = FakeUpstream(load_json(CONFORMANCE / "fixtures.json"))
 
@@ -223,7 +253,7 @@ def test_webhook_without_token_configured_and_zone_with_bad_geometry() -> None:
             return httpx.Response(200, json={"data": {"curb_zone_id": "zbad", "geometry": {"type": "Circle"}}})
         return fake.handle(request)
 
-    with _client(cds_bad_zone, LINK_WEBHOOK_TOKEN="") as client:
+    with _client(cds_bad_zone, LINK_WEBHOOK_TOKEN="", LINK_WEBHOOK_INSECURE="true") as client:
         r = client.post("/webhooks/apds", json={"id": "s"}, headers={"X-APDS-Event-Type": "RateUpdated"})
         assert r.status_code == 200 and r.json()["data"]["applied"] is False
         assert client.get("/zones/zbad/off-street").status_code == 502

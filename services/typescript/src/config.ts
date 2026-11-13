@@ -9,6 +9,7 @@ export interface Settings {
   readonly apdsToken?: string;
   readonly apdsAuthScheme: AuthScheme;
   readonly webhookToken?: string;
+  readonly webhookInsecure: boolean;
   readonly defaultRadiusM: number;
   readonly httpTimeoutMs: number;
   readonly host: string;
@@ -52,6 +53,13 @@ function optional(env: Env, name: string): string | undefined {
   return env[name] ? env[name] : undefined;
 }
 
+function flag(env: Env, name: string): boolean {
+  const value = (env[name] || "false").trim().toLowerCase();
+  if (value === "true" || value === "1") return true;
+  if (value === "false" || value === "0") return false;
+  throw new Error("LINK_WEBHOOK_INSECURE must be one of true, false, 1, 0");
+}
+
 export function settingsFromEnv(env: Env): Settings {
   return {
     cdsBaseUrl: baseUrl(env, "CDS_BASE_URL"),
@@ -60,6 +68,7 @@ export function settingsFromEnv(env: Env): Settings {
     apdsToken: optional(env, "APDS_TOKEN"),
     apdsAuthScheme: authScheme(env),
     webhookToken: optional(env, "LINK_WEBHOOK_TOKEN"),
+    webhookInsecure: flag(env, "LINK_WEBHOOK_INSECURE"),
     defaultRadiusM: int(env, "DEFAULT_RADIUS_M", 400, 1, 5000),
     httpTimeoutMs: int(env, "HTTP_TIMEOUT_MS", 10_000, 100, 120_000),
     host: env.HOST || "0.0.0.0",

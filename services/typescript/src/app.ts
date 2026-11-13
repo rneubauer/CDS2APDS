@@ -71,8 +71,11 @@ function permitRequest(body: JsonObject, clock: () => number) {
   };
 }
 
-function checkWebhookToken(request: FastifyRequest, expected: string | undefined): void {
-  if (!expected) return;
+function checkWebhookToken(request: FastifyRequest, expected: string | undefined, insecure: boolean): void {
+  if (!expected) {
+    if (insecure) return;
+    throw unauthorized("webhooks are disabled until LINK_WEBHOOK_TOKEN is set (or LINK_WEBHOOK_INSECURE=true for development)");
+  }
   const presented = request.headers["x-link-webhook-token"];
   const a = Buffer.from(isString(presented) ? presented : "");
   const b = Buffer.from(expected);
@@ -87,6 +90,10 @@ export function buildApp(settings: Settings, options: AppOptions = {}): FastifyI
     logger: options.logger ?? false,
     logController: new LogController({ disableRequestLogging: true }),
   });
+
+  if (settings.webhookInsecure && !settings.webhookToken) {
+    app.log.warn("LINK_WEBHOOK_INSECURE is enabled and LINK_WEBHOOK_TOKEN is not set: POST /webhooks/apds is unauthenticated");
+  }
 
   app.setErrorHandler((err, request, reply) => {
     if (err instanceof ServiceError) {
@@ -138,7 +145,7 @@ export function buildApp(settings: Settings, options: AppOptions = {}): FastifyI
   });
 
   app.post("/webhooks/apds", async (request, reply) => {
-    checkWebhookToken(request, settings.webhookToken);
+    checkWebhookToken(request, settings.webhookToken, settings.webhookInsecure);
     const eventType = request.headers["x-apds-event-type"];
     if (!isString(eventType) || !APDS_EVENT_TYPES.has(eventType)) {
       throw invalidRequest("X-APDS-Event-Type header is missing or not an APDS EventTypeEnum value");

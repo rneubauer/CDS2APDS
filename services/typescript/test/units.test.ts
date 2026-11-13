@@ -222,13 +222,37 @@ describe("HTTP edge cases", () => {
     expect((await svc.inject({ method: "GET", url: "/issues" })).json().data).toEqual([]);
   });
 
-  it("accepts webhooks without a configured token and rejects zones with bad geometry", async () => {
+  it("parses LINK_WEBHOOK_INSECURE", () => {
+    const base = { CDS_BASE_URL: "https://c", APDS_BASE_URL: APDS };
+    expect(settingsFromEnv(base).webhookInsecure).toBe(false);
+    expect(settingsFromEnv({ ...base, LINK_WEBHOOK_INSECURE: "false" }).webhookInsecure).toBe(false);
+    expect(settingsFromEnv({ ...base, LINK_WEBHOOK_INSECURE: "TRUE" }).webhookInsecure).toBe(true);
+    expect(settingsFromEnv({ ...base, LINK_WEBHOOK_INSECURE: "1" }).webhookInsecure).toBe(true);
+    expect(() => settingsFromEnv({ ...base, LINK_WEBHOOK_INSECURE: "yes" })).toThrow("LINK_WEBHOOK_INSECURE must be one of true, false, 1, 0");
+  });
+
+  it("webhook modes: token, fail closed, insecure", async () => {
+    const hdrs = { "X-APDS-Event-Type": "RateUpdated" };
+    const post = (svc: ReturnType<typeof app>, h: Record<string, string>) => svc.inject({ method: "POST", url: "/webhooks/apds", payload: { id: "s" }, headers: h });
+    const withToken = app();
+    expect((await post(withToken, hdrs)).statusCode).toBe(401);
+    expect((await post(withToken, { ...hdrs, "X-Link-Webhook-Token": "conformance-token" })).statusCode).toBe(200);
+    const closed = app(undefined, { LINK_WEBHOOK_TOKEN: "" });
+    const r = await post(closed, hdrs);
+    expect([r.statusCode, r.json().error.code]).toEqual([401, "unauthorized"]);
+    expect(r.json().error.message).toContain("disabled until LINK_WEBHOOK_TOKEN is set");
+    expect((await closed.inject({ method: "GET", url: "/health" })).statusCode).not.toBe(500);
+    const open = app(undefined, { LINK_WEBHOOK_TOKEN: "", LINK_WEBHOOK_INSECURE: "true" });
+    expect((await post(open, hdrs)).statusCode).toBe(200);
+  });
+
+  it("accepts webhooks without a configured token (insecure mode) and rejects zones with bad geometry", async () => {
     const fake = new FakeUpstream();
     const svc = app(async (url, init) =>
       url.endsWith("/curbs/zones/zbad")
         ? new Response(JSON.stringify({ data: { curb_zone_id: "zbad", geometry: { type: "Circle" } } }), { status: 200 })
         : fake.fetch(url, init),
-    { LINK_WEBHOOK_TOKEN: "" });
+    { LINK_WEBHOOK_TOKEN: "", LINK_WEBHOOK_INSECURE: "true" });
     const r = await svc.inject({ method: "POST", url: "/webhooks/apds", payload: { id: "s" }, headers: { "X-APDS-Event-Type": "RateUpdated" } });
     expect([r.statusCode, r.json().data.applied]).toEqual([200, false]);
     expect((await svc.inject({ method: "GET", url: "/zones/zbad/off-street" })).statusCode).toBe(502);

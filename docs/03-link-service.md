@@ -40,7 +40,8 @@ Both implementations MUST pass the shared conformance suite in [`conformance/`](
 | `APDS_BASE_URL` | yes | | APDS root **including** the version prefix, e.g. `https://apds.example.org/v4` |
 | `APDS_TOKEN` | no | | APDS credential |
 | `APDS_AUTH_SCHEME` | no | `bearer` | `bearer` sends `Authorization: Bearer`; `mcc` sends `X-MCC-Access-Token` (legacy APDS) |
-| `LINK_WEBHOOK_TOKEN` | no | | If set, `POST /webhooks/apds` requires header `X-Link-Webhook-Token` with this value |
+| `LINK_WEBHOOK_TOKEN` | no | | Shared secret for `POST /webhooks/apds`: the request must carry header `X-Link-Webhook-Token` with this value. If unset, webhooks are refused (see `LINK_WEBHOOK_INSECURE`) |
+| `LINK_WEBHOOK_INSECURE` | no | `false` | `true` or `1` accepts webhooks without a token when `LINK_WEBHOOK_TOKEN` is unset, and logs one start-up warning. For development only. `false` or `0` keeps the default. Any other value is a configuration error. Ignored when `LINK_WEBHOOK_TOKEN` is set |
 | `DEFAULT_RADIUS_M` | no | `400` | Default search radius for off-street summaries |
 | `HTTP_TIMEOUT_MS` | no | `10000` | Timeout for each upstream call |
 | `HOST` | no | `0.0.0.0` | Listen address |
@@ -58,7 +59,7 @@ Every response is JSON:
 | HTTP | `error.code` | When |
 |---|---|---|
 | 400 | `invalid_request` | Missing or invalid parameters or body, or an unknown webhook event type |
-| 401 | `unauthorized` | Webhook token missing or wrong |
+| 401 | `unauthorized` | Webhook token missing or wrong, or webhooks disabled because no token is configured |
 | 404 | `not_found` | Curb zone does not exist upstream, or the route does not exist (unknown path, or a known path with the wrong method) |
 | 500 | `internal_error` | Any unexpected failure. The message is always `internal error` and never includes exception text |
 | 502 | `upstream_error` | CDS or APDS failed, timed out or returned malformed data |
@@ -199,6 +200,14 @@ The permit check (T3). The credential goes in the body, never in the URL.
 ### `POST /webhooks/apds`
 Receives APDS `EventData` callbacks (profile §2.7). The header `X-APDS-Event-Type` is required.
 
+Authentication fails closed:
+
+| `LINK_WEBHOOK_TOKEN` | `LINK_WEBHOOK_INSECURE` | Behaviour |
+|---|---|---|
+| set | any | Header `X-Link-Webhook-Token` must match (constant-time compare), else `401 unauthorized` |
+| unset | `true` / `1` | Accepted without a token; the service logs one warning at start-up that webhooks are unauthenticated |
+| unset | unset / `false` / `0` | The service starts and all read endpoints work, but every call returns `401 unauthorized`: webhooks are disabled until `LINK_WEBHOOK_TOKEN` is set |
+
 | Event | Effect |
 |---|---|
 | `PlaceCreated`, `PlaceUpdated` | Upsert the HierarchyElement and rebuild links |
@@ -214,7 +223,9 @@ If the registry has never synced, the service syncs first and then applies the e
 
 - Upstream tokens come from the environment only, and are never logged or returned.
 - Credentials (permit numbers, plates) are accepted only in request bodies, are masked in responses, and never appear in logs.
-- Webhook calls can be protected with `LINK_WEBHOOK_TOKEN`, compared in constant time.
+- Webhook calls require `LINK_WEBHOOK_TOKEN`, compared in constant time. With no token configured, webhooks are
+  refused (`401`) unless `LINK_WEBHOOK_INSECURE=true` is set explicitly, which logs a start-up warning. This fails
+  closed, so a missing secret cannot leave the registry writable.
   APDS defines no signature scheme, so deployments SHOULD also restrict the webhook route at the network level.
 - Upstream responses are treated as untrusted: malformed payloads produce `502 upstream_error`, not crashes.
   A `meta.total` that isn't an integer stops paging after the current page.
