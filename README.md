@@ -67,5 +67,6 @@ CDS_BASE_URL=https://cds.example.org APDS_BASE_URL=https://apds.example.org/v4 n
 Proposal v0.1, not endorsed by the Open Mobility Foundation or APDS. The upstream schema issues
 listed in [profile §2.9](docs/02-link-profile.md#29-upstream-schema-issues-found) are candidates to report upstream.
 
-Licences: the vendored specifications keep their own licences (APDS: MIT; CDS OpenAPI: CC BY 4.0).
-See [`vendor/README.md`](vendor/README.md).
+Licences: this repository is under the [MIT licence](LICENSE), matching the two services' package metadata. The
+vendored specifications keep their own licences (APDS: MIT; CDS OpenAPI: CC BY 4.0); see
+[`vendor/README.md`](vendor/README.md).

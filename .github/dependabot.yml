@@ -1,0 +1,26 @@
+# Weekly dependency updates. Kept small because CI runs on one lab runner that takes one job at a time.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /services/python
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 2
+    groups:
+      python:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /services/typescript
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 2
+    groups:
+      typescript:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 1
