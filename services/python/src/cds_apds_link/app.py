@@ -198,9 +198,11 @@ def _permit_request(body: dict[str, Any], clock: Callable[[], datetime]) -> tupl
     return zone_id.strip(), permits.normalize_credential(credential), credential_type, at
 
 
-def _check_webhook_token(request: Request, expected: str | None) -> None:
+def _check_webhook_token(request: Request, expected: str | None, insecure: bool) -> None:
     if not expected:
-        return
+        if insecure:
+            return
+        raise unauthorized("webhooks are disabled until LINK_WEBHOOK_TOKEN is set (or LINK_WEBHOOK_INSECURE=true for development)")
     presented = request.headers.get("x-link-webhook-token", "")
     if not hmac.compare_digest(presented.encode(), expected.encode()):
         raise unauthorized("missing or invalid webhook token")
@@ -243,6 +245,8 @@ def create_app(
 ) -> FastAPI:
     client = httpx.AsyncClient(timeout=settings.http_timeout_ms / 1000, transport=transport)
     service = LinkService(settings, client, clock)
+    if settings.webhook_insecure and not settings.webhook_token:
+        log.warning("LINK_WEBHOOK_INSECURE is enabled and LINK_WEBHOOK_TOKEN is not set: POST /webhooks/apds is unauthenticated")
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -314,7 +318,7 @@ def create_app(
 
     @app.post("/webhooks/apds")
     async def webhook(request: Request) -> JSONResponse:
-        _check_webhook_token(request, settings.webhook_token)
+        _check_webhook_token(request, settings.webhook_token, settings.webhook_insecure)
         event_type = request.headers.get("x-apds-event-type", "")
         if event_type not in APDS_EVENT_TYPES:
             raise invalid_request("X-APDS-Event-Type header is missing or not an APDS EventTypeEnum value")

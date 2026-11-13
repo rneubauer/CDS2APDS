@@ -16,6 +16,7 @@ class Settings:
     apds_token: str | None = None
     apds_auth_scheme: str = "bearer"
     webhook_token: str | None = None
+    webhook_insecure: bool = False
     default_radius_m: int = 400
     http_timeout_ms: int = 10_000
     host: str = "0.0.0.0"
@@ -30,6 +31,7 @@ class Settings:
             apds_token=env.get("APDS_TOKEN") or None,
             apds_auth_scheme=_choice(env, "APDS_AUTH_SCHEME", AUTH_SCHEMES, "bearer"),
             webhook_token=env.get("LINK_WEBHOOK_TOKEN") or None,
+            webhook_insecure=_flag(env, "LINK_WEBHOOK_INSECURE"),
             default_radius_m=_int(env, "DEFAULT_RADIUS_M", 400, 1, 5000),
             http_timeout_ms=_int(env, "HTTP_TIMEOUT_MS", 10_000, 100, 120_000),
             host=env.get("HOST") or "0.0.0.0",
@@ -64,3 +66,12 @@ def _choice(env: Mapping[str, str], name: str, allowed: tuple[str, ...], default
     if value not in allowed:
         raise ValueError(f"{name} must be one of {', '.join(allowed)}")
     return value
+
+
+def _flag(env: Mapping[str, str], name: str) -> bool:
+    value = (env.get(name) or "false").strip().lower()
+    if value in ("true", "1"):
+        return True
+    if value in ("false", "0"):
+        return False
+    raise ValueError("LINK_WEBHOOK_INSECURE must be one of true, false, 1, 0")
