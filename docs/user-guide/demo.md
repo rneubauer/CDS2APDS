@@ -1,3 +1,11 @@
+---
+title: "Using the Civic District demo"
+audience: user
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # Using the Civic District demo
 
 The demo is one web page that shows the three places where curb data (CDS) and off-street parking data (APDS)
