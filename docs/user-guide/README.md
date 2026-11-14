@@ -1,3 +1,11 @@
+---
+title: "User guide"
+audience: user
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # User guide
 
 For the people who publish or use curb and parking data: city curb teams publishing CDS, facility operators

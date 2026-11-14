@@ -1,3 +1,11 @@
+---
+title: "0001. Link CDS and APDS at three touchpoints instead of merging them"
+audience: developer
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # 0001. Link CDS and APDS at three touchpoints instead of merging them
 
 Status: accepted (v0.1)

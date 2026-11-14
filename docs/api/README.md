@@ -1,3 +1,11 @@
+---
+title: "API reference: link service"
+audience: api
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # API reference: link service
 
 For integrators who call the CDS-APDS link service over HTTP. Both reference services (Python and

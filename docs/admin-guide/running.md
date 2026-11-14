@@ -1,3 +1,11 @@
+---
+title: "Running in production-like setups"
+audience: admin
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # Running in production-like setups
 
 v0.1 is a reference implementation. It runs fine as a long-lived service, but it has no caller

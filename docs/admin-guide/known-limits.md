@@ -1,3 +1,11 @@
+---
+title: "Known limits"
+audience: admin
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # Known limits
 
 Checked against the code in v0.1. Values are the same in both versions unless a row says otherwise.

@@ -1,3 +1,11 @@
+---
+title: "Build, run and test"
+audience: developer
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # Build, run and test
 
 Run all commands from the repository root unless a step says otherwise. CI

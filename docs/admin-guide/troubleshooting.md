@@ -1,3 +1,11 @@
+---
+title: "Troubleshooting"
+audience: admin
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # Troubleshooting
 
 Every API error comes back in the envelope

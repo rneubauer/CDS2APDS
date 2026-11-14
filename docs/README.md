@@ -1,3 +1,11 @@
+---
+title: "Documentation"
+audience: developer
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # Documentation
 
 This repository is a standards proposal with two reference services, so its docs come in two groups.
@@ -24,3 +32,11 @@ This repository is a standards proposal with two reference services, so its docs
 Known gaps, and the plan to close them, are in [docs-backlog.md](docs-backlog.md). What changed in each release is
 in [CHANGELOG.md](../CHANGELOG.md). Every change to behaviour, settings, the API
 or a screen updates the matching page here in the same PR.
+
+## Public and internal docs
+
+This repository is a proposal, so all of its docs are internal. Nothing is under `docs/public/`, and every page
+carries front matter (`title`, `audience`, `product`, `status`, `reviewed`), which CI checks with
+`tools/check_front_matter.py`. Publishing any part outside the lab is Rick's decision. It happens by moving files
+into `docs/public/` in a PR, which then also needs the leak scan and a `CODEOWNERS` entry from the
+lab documentation standard.

@@ -1,3 +1,11 @@
+---
+title: "Docs backlog"
+audience: developer
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # Docs backlog
 
 Every gap against the [lab documentation standard](README.md) for what exists in this repo today, so we can close

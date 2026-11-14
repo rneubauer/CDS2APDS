@@ -57,3 +57,15 @@ jobs:
         with:
           python-version: "3.12"
       - run: python tools/check_docs_changed.py "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
+
+  front-matter:
+    name: Front matter is valid
+    runs-on: [self-hosted, cds2apds]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install "pyyaml==6.0.2" "pytest==8.3.4"
+      - run: pytest -q tools/test_check_front_matter.py
+      - run: python tools/check_front_matter.py

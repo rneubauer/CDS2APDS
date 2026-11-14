@@ -1,3 +1,11 @@
+---
+title: "3. Reference link service"
+audience: api
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # 3. Reference link service
 
 **Status:** Proposal v0.1 · Implementations: [`services/typescript`](../services/typescript) and [`services/python`](../services/python)

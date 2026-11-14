@@ -1,3 +1,11 @@
+---
+title: "Code map"
+audience: developer
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # Code map
 
 ## Top level

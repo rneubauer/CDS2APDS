@@ -1,3 +1,11 @@
+---
+title: "Configuration"
+audience: admin
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # Configuration
 
 The service is configured **only** through environment variables. There is no config file. The names are

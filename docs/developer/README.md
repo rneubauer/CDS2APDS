@@ -1,3 +1,11 @@
+---
+title: "Developer guide"
+audience: developer
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # Developer guide
 
 For engineers joining the project. It explains how the repository fits together and how to change it

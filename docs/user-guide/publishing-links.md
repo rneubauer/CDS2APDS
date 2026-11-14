@@ -1,3 +1,11 @@
+---
+title: "Publishing links"
+audience: user
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # Publishing links
 
 A link says "this curb record and this parking record belong together". You add it to data you already publish.

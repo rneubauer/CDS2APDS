@@ -1,3 +1,11 @@
+---
+title: "0004. Vendor pinned upstream schemas; patch upstream bugs in memory only"
+audience: developer
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # 0004. Vendor pinned upstream schemas; patch upstream bugs in memory only
 
 Status: accepted (v0.1)
