@@ -21,7 +21,7 @@ def test_missing_block():
 
 
 def test_bad_audience_and_status():
-    text = VALID.replace("audience: user", "audience: staff").replace("status: current", "status: old")
+    text = VALID.replace("audience: user", "audience: nobody").replace("status: current", "status: old")
     problems = cfm.check_text(text)
     assert any(p.startswith("audience") for p in problems)
     assert any(p.startswith("status") for p in problems)
