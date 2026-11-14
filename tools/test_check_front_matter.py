@@ -40,3 +40,7 @@ def test_unknown_key_and_missing_field():
 def test_wrong_types():
     assert any("draft" in p for p in cfm.check_text(VALID.replace("---\n\n#", "draft: yes please\n---\n\n#")))
     assert any("title" in p for p in cfm.check_text(VALID.replace("title: T", "title: 5")))
+
+
+def test_staff_audience_allowed():
+    assert cfm.check_text(VALID.replace("audience: user", "audience: staff")) == []

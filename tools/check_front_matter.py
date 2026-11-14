@@ -3,7 +3,7 @@
     python tools/check_front_matter.py            # check all docs/**/*.md
     python tools/check_front_matter.py a.md b.md  # check only these files
 
-Required: title (non-empty str), audience (user|admin|developer|api), product (non-empty str),
+Required: title (non-empty str), audience (user|admin|developer|api|staff), product (non-empty str),
 status (current|planned), reviewed (YYYY-MM-DD date). Optional: draft (bool). Unknown keys are errors.
 Prints file:problem lines and exits 1 if anything is wrong. Offline; needs pyyaml.
 """
@@ -17,7 +17,7 @@ from pathlib import Path
 import yaml
 
 REPO = Path(__file__).resolve().parents[1]
-AUDIENCES = {"user", "admin", "developer", "api"}
+AUDIENCES = {"user", "admin", "developer", "api", "staff"}
 STATUSES = {"current", "planned"}
 KNOWN = {"title", "audience", "product", "status", "reviewed", "draft"}
 BLOCK_RE = re.compile(r"\A---\r?\n(.*?)\r?\n---\r?\n", re.DOTALL)
