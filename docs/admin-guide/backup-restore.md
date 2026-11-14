@@ -1,3 +1,11 @@
+---
+title: "Backup and restore"
+audience: admin
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # Backup and restore
 
 **There is nothing to back up.** The link service is stateless across restarts. It keeps no database and

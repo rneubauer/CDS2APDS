@@ -1,3 +1,11 @@
+---
+title: "Install"
+audience: admin
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # Install
 
 There are no packages or container images yet. You install from a checkout of the repository.

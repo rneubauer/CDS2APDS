@@ -1,3 +1,11 @@
+---
+title: "Monitoring"
+audience: admin
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # Monitoring
 
 The service has one status endpoint and writes logs to the console. There is no metrics endpoint.

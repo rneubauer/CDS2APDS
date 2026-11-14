@@ -1,3 +1,11 @@
+---
+title: "Decision records"
+audience: developer
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # Decision records
 
 One file per decision, numbered `NNNN-short-title.md`: context, decision, consequences.

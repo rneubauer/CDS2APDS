@@ -1,3 +1,11 @@
+---
+title: "0002. Use only existing fields: `external_references` and `operatorDefinedReference`"
+audience: developer
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # 0002. Use only existing fields: `external_references` and `operatorDefinedReference`
 
 Status: accepted (v0.1)

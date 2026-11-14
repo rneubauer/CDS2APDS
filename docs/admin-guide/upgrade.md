@@ -1,3 +1,11 @@
+---
+title: "Upgrade"
+audience: admin
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # Upgrade
 
 ## Upgrading the service

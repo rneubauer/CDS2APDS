@@ -1,3 +1,11 @@
+---
+title: "0003. Two reference services held equal by a shared conformance suite"
+audience: developer
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # 0003. Two reference services held equal by a shared conformance suite
 
 Status: accepted (v0.1)

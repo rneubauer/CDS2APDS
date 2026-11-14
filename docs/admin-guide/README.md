@@ -1,3 +1,11 @@
+---
+title: "Admin guide"
+audience: admin
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # Admin guide
 
 For people who install and run the CDS–APDS **link service**. The service is a small HTTP API that sits

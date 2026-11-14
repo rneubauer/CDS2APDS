@@ -1,3 +1,11 @@
+---
+title: "1. Domain boundary: CDS (on-street) and APDS (off-street)"
+audience: user
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # 1. Domain boundary: CDS (on-street) and APDS (off-street)
 
 **Status:** Proposal, v0.1 · **Applies to:** CDS 1.1.0, APDS 4.1

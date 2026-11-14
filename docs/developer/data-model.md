@@ -1,3 +1,11 @@
+---
+title: "Data model"
+audience: developer
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # Data model
 
 The service has no database. Its only state is the in-memory **link registry**: copies of the harvested CDS

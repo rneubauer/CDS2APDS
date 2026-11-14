@@ -1,3 +1,11 @@
+---
+title: "2. CDS–APDS Link Profile v0.1"
+audience: user
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # 2. CDS–APDS Link Profile v0.1
 
 **Status:** Proposal · **Applies to:** CDS 1.1.0, APDS 4.1

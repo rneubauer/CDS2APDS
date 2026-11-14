@@ -1,3 +1,11 @@
+---
+title: "Using links"
+audience: user
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # Using links
 
 How to answer the three curb-and-garage questions with data that is already published. You can do each one with

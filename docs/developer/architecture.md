@@ -1,3 +1,11 @@
+---
+title: "Architecture overview"
+audience: developer
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # Architecture overview
 
 ## The idea in one paragraph
