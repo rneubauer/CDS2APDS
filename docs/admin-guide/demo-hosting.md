@@ -1,3 +1,11 @@
+---
+title: "Hosting the demo on the lab tailnet"
+audience: admin
+product: CDS2APDS
+status: current
+reviewed: 2026-11-14
+---
+
 # Hosting the demo on the lab tailnet
 
 A runbook for showing the Civic District demo to an audience on the lab tailnet. For what the demo shows, see
