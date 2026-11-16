@@ -44,3 +44,12 @@ def test_wrong_types():
 
 def test_staff_audience_allowed():
     assert cfm.check_text(VALID.replace("audience: user", "audience: staff")) == []
+
+
+def test_superseded_status_and_source_allowed():
+    text = VALID.replace("status: current", "status: superseded").replace("---\n\n#", "source: SharePoint Inbox\n---\n\n#")
+    assert cfm.check_text(text) == []
+
+
+def test_empty_source_rejected():
+    assert any("source" in p for p in cfm.check_text(VALID.replace("---\n\n#", "source: ''\n---\n\n#")))
