@@ -4,7 +4,7 @@ audience: staff
 product: CDS2APDS
 status: current
 reviewed: 2026-11-16
-source: "Markdown copy of the review map published for Rick (https://claude.ai/artifact/6fKxcb2bKvb9YR5qNYZTTW, private), state of 2026-11-16"
+source: "Markdown copy of the review map published for Rick (https://claude.ai/artifact/1QGcWK1WStcgsbzaMqtmat, private; republished on Rick's current account 2026-11-17), state of 2026-11-16"
 ---
 
 # Merge plan for the open draft PRs
