@@ -4,11 +4,12 @@ audience: staff
 product: CDS2APDS
 status: current
 reviewed: 2026-11-14
+source: "Written in this repo for the lab docs standard (PR #8, 2026-11-03); moved to docs/planning 2026-11-16"
 ---
 
 # Docs backlog
 
-Every gap against the [lab documentation standard](README.md) for what exists in this repo today, so we can close
+Every gap against the [lab documentation standard](../../README.md) for what exists in this repo today, so we can close
 them in small docs-only PRs by 2026-11-17. Started 2026-11-03.
 
 **Type:** user, admin, developer (dev) or API. **Size:** S (under an hour), M (a few hours), L (a day or more).
